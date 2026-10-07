@@ -1,0 +1,53 @@
+/* Olifant Digital — base element resets / global type defaults.
+   Tokens only live here as application defaults; keep new tokens in tokens/*. */
+
+:root {
+  color-scheme: light;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--body-sm-size);
+  line-height: var(--body-sm-lh);
+  color: var(--text-primary);
+  background: var(--background-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "ss01", "ss02";
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-serif);
+  font-weight: var(--weight-bold);
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: var(--tracking-tight);
+}
+
+p { margin: 0; }
+
+a { color: var(--text-link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+code, kbd, samp, pre { font-family: var(--font-mono); }
+
+/* Reusable utility classes for type roles (handy in cards & kits) */
+.od-eyebrow {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-bold);
+  font-size: var(--eyebrow-size);
+  line-height: var(--eyebrow-lh);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.od-mono {
+  font-family: var(--font-mono);
+  font-size: var(--mono-size);
+  line-height: var(--mono-lh);
+}

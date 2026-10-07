@@ -1,0 +1,47 @@
+/* Olifant Digital — Spacing, radius, sizing tokens
+   Spacing scale uses Figma "Spacing/NNN" naming where 100 = 8px (base unit). */
+
+:root {
+  --space-025: 2px;
+  --space-050: 4px;
+  --space-075: 6px;
+  --space-100: 8px;
+  --space-150: 12px;
+  --space-200: 16px;
+  --space-250: 20px;
+  --space-300: 24px;
+  --space-400: 32px;
+  --space-500: 40px;
+  --space-600: 48px;
+  --space-700: 56px;
+  --space-750: 60px;
+  --space-800: 64px;
+  --space-900: 72px;
+  --space-1000: 80px;
+  --space-1200: 96px;
+  --space-1500: 120px;
+  --space-1800: 144px;
+
+  /* Radius */
+  --radius-xs:   4px;
+  --radius-sm:   8px;
+  --radius-md:   12px;
+  --radius-lg:   16px;
+  --radius-xl:   24px;
+  --radius-full: 9999px;
+
+  /* Border widths */
+  --border-width-thin:   1px;
+  --border-width-medium: 1.5px;
+  --border-width-thick:  2px;
+
+  /* Layout */
+  --container-max: 1200px;
+  --container-wide: 1440px;
+  --gutter: var(--space-800);
+
+  /* Control heights */
+  --control-sm: 32px;
+  --control-md: 40px;
+  --control-lg: 48px;
+}

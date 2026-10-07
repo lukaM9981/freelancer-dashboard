@@ -1,0 +1,28 @@
+<!-- @dsCard group="Spacing" viewport="700x150" name="Radius & Elevation" subtitle="Corner radii + warm ink shadows" -->
+<!DOCTYPE html><html><head><meta charset="utf-8"><link rel="stylesheet" href="../styles.css">
+<style>body{margin:0;padding:22px 28px;background:var(--background-primary)}
+.wrap{display:flex;gap:28px;align-items:flex-end}
+.col{display:flex;gap:14px;align-items:flex-end}
+.box{width:64px;height:64px;background:var(--white);box-shadow:inset 0 0 0 1px var(--border-subtle);display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;box-sizing:border-box}
+.box span{font:var(--weight-medium) 10px var(--font-mono);color:var(--text-secondary)}
+.sh{width:80px;height:64px;background:var(--white);border-radius:var(--radius-md);display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;box-sizing:border-box}
+.sh span{font:var(--weight-medium) 10px var(--font-mono);color:var(--text-secondary)}
+.sep{width:1px;align-self:stretch;background:var(--border-subtle)}</style></head>
+<body>
+<div class="wrap">
+<div class="col">
+<div class="box" style="border-radius:var(--radius-xs)"><span>xs 4</span></div>
+<div class="box" style="border-radius:var(--radius-sm)"><span>sm 8</span></div>
+<div class="box" style="border-radius:var(--radius-md)"><span>md 12</span></div>
+<div class="box" style="border-radius:var(--radius-lg)"><span>lg 16</span></div>
+<div class="box" style="border-radius:var(--radius-full)"><span>full</span></div>
+</div>
+<div class="sep"></div>
+<div class="col">
+<div class="sh" style="box-shadow:var(--shadow-xs)"><span>xs</span></div>
+<div class="sh" style="box-shadow:var(--shadow-sm)"><span>sm</span></div>
+<div class="sh" style="box-shadow:var(--shadow-md)"><span>md</span></div>
+<div class="sh" style="box-shadow:var(--shadow-lg)"><span>lg</span></div>
+</div>
+</div>
+</body></html>

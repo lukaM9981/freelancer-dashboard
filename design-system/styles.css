@@ -1,0 +1,11 @@
+/* ════════════════════════════════════════════════════════════════
+   Olifant Digital — Design System  (DS-V2.1)
+   Global CSS entry point. Consumers link THIS one file.
+   Keep this as a list of @imports only — no rules here.
+   ════════════════════════════════════════════════════════════════ */
+
+@import "./tokens/fonts.css";
+@import "./tokens/colors.css";
+@import "./tokens/spacing.css";
+@import "./tokens/typography.css";
+@import "./tokens/base.css";

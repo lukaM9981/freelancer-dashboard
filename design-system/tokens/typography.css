@@ -1,0 +1,60 @@
+/* Olifant Digital — Typography & elevation tokens */
+
+:root {
+  /* Font families */
+  --font-serif: "Wulkan Display", Georgia, "Times New Roman", serif; /* headings (self-hosted) */
+  --font-sans:  "Satoshi", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; /* body + display + UI (self-hosted) */
+  --font-mono:  "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; /* data, labels, code */
+
+  /* Weights */
+  --weight-regular: 400;
+  --weight-medium:  500;
+  --weight-bold:    700;
+  --weight-black:   900;
+
+  /* ── Type scale (size / line-height) ──────────────────────────────
+     HEADING = serif (Wulkan), DISPLAY = sans Black (Satoshi),
+     BODY = sans, ACTION/eyebrow = sans Bold uppercase + tracking. */
+
+  /* Display — Satoshi Black, used for big numeric / impact moments */
+  --display-xl-size: 56px;  --display-xl-lh: 76px;
+  --display-lg-size: 32px;  --display-lg-lh: 44px;
+
+  /* Heading — Wulkan Display Bold (serif) */
+  --heading-xxl-size: 52px; --heading-xxl-lh: 64px;
+  --heading-xl-size:  48px; --heading-xl-lh:  56px;
+  --heading-lg-size:  32px; --heading-lg-lh:  40px;
+  --heading-md-size:  26px; --heading-md-lh:  32px;
+  --heading-sm-size:  22px; --heading-sm-lh:  26px;
+  --heading-xs-size:  20px; --heading-xs-lh:  24px;
+
+  /* Body — Satoshi (Regular / Medium) */
+  --body-xl-size: 22px; --body-xl-lh: 30px;
+  --body-lg-size: 20px; --body-lg-lh: 32px;
+  --body-md-size: 18px; --body-md-lh: 26px;
+  --body-sm-size: 16px; --body-sm-lh: 24px;
+  --body-xs-size: 14px; --body-xs-lh: 18px;
+
+  /* Action / eyebrow — Satoshi Bold, uppercase, tracked */
+  --action-sm-size: 16px; --action-sm-lh: 24px;
+  --action-xs-size: 14px; --action-xs-lh: 18px;
+  --eyebrow-size:   12px; --eyebrow-lh:   12px;
+
+  /* Mono / data labels — JetBrains Mono */
+  --mono-size: 13px; --mono-lh: 20px;
+
+  /* Letter spacing */
+  --tracking-tight:  -0.01em;
+  --tracking-normal: 0;
+  --tracking-wide:   0.04em;
+  --tracking-eyebrow: 2px;  /* uppercase eyebrows */
+
+  /* ── Elevation — soft, low, warm ink shadows (flat system) ──────── */
+  --shadow-xs: 0 1px 2px rgba(25,19,13,0.06);
+  --shadow-sm: 0 1px 3px rgba(25,19,13,0.08), 0 1px 2px rgba(25,19,13,0.06);
+  --shadow-md: 0 4px 12px rgba(25,19,13,0.10);
+  --shadow-lg: 0 12px 32px rgba(25,19,13,0.14);
+
+  /* Focus shadow */
+  --shadow-focus: 0 0 0 3px var(--yellow-200);
+}

@@ -1,0 +1,127 @@
+/* Olifant Digital — Color tokens
+   Full palettes (base) + semantic aliases. Values are the exact Figma hexes. */
+
+:root {
+  /* ── Yellow (brand) ───────────────────────────── */
+  --yellow-50:  #FEF5DA;
+  --yellow-100: #FEECB7;
+  --yellow-200: #FFE699;
+  --yellow-300: #FFD966;
+  --yellow-400: #FFD046; /* BRAND PRIMARY */
+  --yellow-500: #FFBF00;
+  --yellow-600: #CC9900;
+  --yellow-700: #997300;
+  --yellow-800: #664D00;
+  --yellow-900: #332600;
+  --yellow-950: #241B00;
+
+  /* ── Pine (accent green) ──────────────────────── */
+  --pine-50:  #F1F6EF;
+  --pine-100: #E3ECDF;
+  --pine-200: #D0E0C9; /* BRAND ACCENT */
+  --pine-300: #AAC79E;
+  --pine-400: #8E857D;
+  --pine-500: #72A25D;
+  --pine-600: #5B824A;
+  --pine-700: #446138;
+  --pine-800: #2D4125;
+  --pine-900: #172013;
+  --pine-950: #10170D;
+
+  /* ── Neutral (warm grey ramp toward ink) ──────── */
+  --neutral-50:  #FFFEF9; /* off-white background */
+  --neutral-100: #F3F0E7;
+  --neutral-200: #D1CDC7;
+  --neutral-300: #BAB3AB;
+  --neutral-400: #A39A8F;
+  --neutral-500: #70675C;
+  --neutral-600: #504840;
+  --neutral-700: #3B352C;
+  --neutral-800: #282420;
+  --neutral-900: #19130D;
+  --neutral-950: #0F0B08; /* ink */
+
+  /* ── Semantic — Green (success) ───────────────── */
+  --green-50:  #F1F9E9;
+  --green-200: #C2E2B4;
+  --green-500: #40C407;
+  --green-700: #2D8C04;
+
+  /* ── Semantic — Red (error/danger) ────────────── */
+  --red-50:  #FFF9F9;
+  --red-200: #FFCCCC;
+  --red-600: #E62415;
+
+  /* ── Semantic — Blue (info) ───────────────────── */
+  --blue-100: #CCE3FF;
+  --blue-700: #0052B4;
+
+  /* ── Pure ─────────────────────────────────────── */
+  --white: #FFFFFF;
+  --black: #000000;
+
+  /* ════════════════════════════════════════════════
+     SEMANTIC ALIASES
+     ════════════════════════════════════════════════ */
+
+  /* Surfaces / backgrounds */
+  --background-primary:   var(--neutral-50);   /* page off-white */
+  --background-raised:    var(--white);        /* cards on off-white */
+  --background-sunken:    var(--neutral-100);  /* wells, section bands */
+  --background-inverse:   var(--neutral-900);  /* ink panels */
+  --background-inverse-deep: var(--neutral-950);
+  --background-brand:     var(--yellow-400);
+  --background-brand-subtle: var(--yellow-50);
+  --background-accent:    var(--pine-200);
+  --background-accent-subtle: var(--pine-50);
+
+  /* Foreground / text */
+  --text-primary:   var(--neutral-900);  /* ink */
+  --text-secondary: var(--neutral-500);  /* muted body / labels */
+  --text-tertiary:  var(--neutral-400);  /* captions, placeholders */
+  --text-inverse:   var(--neutral-50);   /* on ink/brand-dark */
+  --text-on-brand:  var(--neutral-900);  /* ink on yellow */
+  --text-link:      var(--yellow-700);
+  --text-accent:    var(--pine-700);
+
+  /* Borders */
+  --border-subtle: var(--neutral-200);
+  --border-medium: var(--neutral-600);
+  --border-strong: var(--neutral-900);
+  --border-brand:  var(--yellow-400);
+  --border-accent: var(--pine-700);
+
+  /* Status — success */
+  --success-fg:     var(--green-700);
+  --success-bg:     var(--green-50);
+  --success-border: var(--green-200);
+  --success-solid:  var(--green-500);
+
+  /* Status — error */
+  --error-fg:     var(--red-600);
+  --error-bg:     var(--red-50);
+  --error-border: var(--red-200);
+  --error-solid:  var(--red-600);
+
+  /* Status — info */
+  --info-fg:     var(--blue-700);
+  --info-bg:     var(--blue-100);
+  --info-border: var(--blue-100);
+  --info-solid:  var(--blue-700);
+
+  /* Interactive — primary (yellow) */
+  --action-primary-bg:        var(--yellow-400);
+  --action-primary-bg-hover:  var(--neutral-900);
+  --action-primary-fg:        var(--neutral-900);
+  --action-primary-fg-hover:  var(--neutral-50);
+  --action-primary-disabled:  var(--yellow-100);
+
+  /* Interactive — secondary (ink) */
+  --action-secondary-bg:        var(--neutral-900);
+  --action-secondary-bg-hover:  var(--neutral-700);
+  --action-secondary-fg:        var(--neutral-50);
+  --action-secondary-disabled:  var(--neutral-300);
+
+  /* Focus ring */
+  --focus-ring: var(--yellow-500);
+}

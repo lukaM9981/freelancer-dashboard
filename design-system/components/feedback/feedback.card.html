@@ -1,0 +1,49 @@
+<!-- @dsCard group="Components" viewport="700x420" name="Dialog, Toast & Tooltip" subtitle="Modal, notifications, hover bubble" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../../styles.css" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+  body { margin: 0; padding: 28px; background: var(--background-primary); }
+  .lbl { font: var(--weight-bold) 12px var(--font-sans); letter-spacing: 2px; text-transform: uppercase; color: var(--text-secondary); margin: 0 0 12px; }
+  .toasts { display:flex; flex-direction:column; gap:12px; max-width:380px; margin-bottom:28px; }
+  .panel { position: relative; height: 200px; border-radius: var(--radius-lg); overflow: hidden; box-shadow: inset 0 0 0 1px var(--border-subtle); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { Toast, Dialog, Tooltip, Button, IconButton } = window.OlifantDigitalDesignSystem_8e3542;
+function Demo(){
+  return (
+    <div>
+      <p className="lbl">Toasts</p>
+      <div className="toasts">
+        <Toast variant="success" title="Campaign live" message="Your Amazon campaign is now running." onClose={()=>{}} />
+        <Toast variant="brand" title="New insight" message="Conversion up 12% week-over-week." onClose={()=>{}} />
+        <Toast variant="error" title="Upload failed" message="The product feed couldn't be parsed." onClose={()=>{}} />
+      </div>
+      <p className="lbl">Dialog &amp; Tooltip</p>
+      <div style={{display:"flex",gap:"16px",alignItems:"center"}}>
+        <div className="panel" style={{flex:1}}>
+          <Dialog open={true} onClose={()=>{}} width={360} title="Archive campaign?"
+            footer={<><Button variant="tertiary" size="sm">Cancel</Button><Button variant="primary" size="sm">Archive</Button></>}>
+            This pauses delivery and moves it to your archive. You can restore it anytime.
+          </Dialog>
+        </div>
+        <Tooltip label="Export report"><IconButton label="Export" variant="tertiary"><i data-lucide="download" style={{width:18,height:18}}></i></IconButton></Tooltip>
+      </div>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<Demo />);
+setTimeout(()=>window.lucide&&window.lucide.createIcons(),100);
+</script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+/* Olifant Digital — Webfonts
+   ─────────────────────────────────────────────────────────────────────
+   • Satoshi (variable) — body / display / UI.  Self-hosted.  Exact brand font.
+   • Wulkan Display Bold — editorial headings. Self-hosted (Bold master only).
+   • JetBrains Mono — data labels / mono. Loaded from Google Fonts (exact).
+   ───────────────────────────────────────────────────────────────────── */
+
+/* Satoshi — variable weight axis (covers 400 / 500 / 700 / 900) */
+@font-face {
+  font-family: "Satoshi";
+  src: url("../assets/fonts/Satoshi-Variable.ttf") format("truetype");
+  font-weight: 300 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Wulkan Display — Bold master (used for all serif headings, weight 700) */
+@font-face {
+  font-family: "Wulkan Display";
+  src: url("../assets/fonts/WulkanDisplayBold.ttf") format("truetype");
+  font-weight: 600 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* JetBrains Mono — exact (Google Fonts) */
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap");

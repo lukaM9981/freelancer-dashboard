@@ -1,0 +1,25 @@
+---
+description: Olifant Workboard project specs. Consult before implementing or changing any feature.
+alwaysApply: true
+---
+
+# Olifant Workboard: specs first
+
+The specifications live in `docs/` and are the source of truth:
+
+- `docs/PRD.md`: what the product does; behaviour, permissions, business rules.
+- `docs/DB.md`: database schema, row-level security, functions, and triggers.
+- `docs/Tech.md`: architecture, conventions, and build order.
+- `docs/Design.md`: visual system, component recipes, and UI patterns.
+
+Rules:
+
+- Read the relevant sections before implementing, and reference section numbers in
+  commit messages (for example "PRD §6.8").
+- If the code and the docs disagree, stop and ask instead of silently diverging. When a
+  decision changes, update the doc in the same change.
+- Access rules (PRD §7 and §8), especially freelancer isolation and money visibility, are
+  enforced in the database. Never rely on filtering in the UI alone.
+- Durations are whole minutes and money is exact decimals; never accumulate floats.
+- Dates and month boundaries use the organization's time zone, never the server's or the
+  browser's.

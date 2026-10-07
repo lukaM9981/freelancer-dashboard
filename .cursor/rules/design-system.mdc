@@ -1,0 +1,49 @@
+---
+description: Olifant design system. Apply to every UI change: pages, components, styles.
+globs: app/**/*.tsx,components/**/*.tsx,app/**/*.css
+alwaysApply: false
+---
+
+# Olifant design system
+
+Read `docs/Design.md` before building or changing UI. The original design-system export
+lives in `design-system/` as a reference. Never import from it: its React components are
+inline-styled prototypes. The app rebuilds them on shadcn/ui as described in Design.md §4.
+
+## Non-negotiables
+
+- **Colours:** only theme tokens (`bg-background`, `text-foreground`, `bg-primary`,
+  `text-muted-foreground`, `border-border`, `bg-card`, `text-link`, `bg-success-subtle`, …)
+  or the brand ramps that exist (`yellow-*`, `pine-*` except 400, `neutral-*`, and the
+  defined `green`/`red`/`blue` steps). Never raw hex or rgb() in components, and never
+  Tailwind's default palette (`gray`, `slate`, `zinc`, `amber`, `emerald`, …): it is
+  disabled and renders nothing.
+- **Yellow is the single hero accent.** At most one primary (yellow) button per view. No
+  decorative yellow.
+- **Type:** headings (`h1`–`h4`) are Wulkan Display via `font-heading`; everything else is
+  Satoshi (`font-sans`). JetBrains Mono (`font-mono`) only for the timer clock, IDs,
+  timestamps, and code. Use the design-system sizes: `text-heading-*`, `text-body-*`,
+  `text-display-*`, `text-caption`, and the `eyebrow` utility.
+- **Numbers** (durations, money, counts) use the `numeric` utility. Format with the helpers
+  from Design.md §5.3: durations `8h 48m`, money `€1,240.00` / `$1,240.00`, currency always
+  visible, EUR and USD never added together.
+- **Shapes:** buttons, badges, and tags are pills (`rounded-full`); inputs and menu items
+  `rounded-sm`; menus, popovers, and toasts `rounded-md`; cards, dialogs, and sheets
+  `rounded-lg`.
+- **Surfaces are flat.** White cards with a hairline border *or* a soft shadow, never both
+  heavy. No gradients, textures, coloured left borders on cards, or emoji.
+- **Icons:** `lucide-react` only, outline, 16–20px, stroke 2, `currentColor`. Icon-only
+  buttons need an `aria-label` and a tooltip.
+- **Task status** is always rendered with `<StatusBadge status=… />` (label + icon +
+  colour, Design.md §5.1). Never colour alone.
+- **Focus:** `focus-ring` on buttons, links, tabs, toggles, and clickable rows;
+  `focus-field` on inputs, textareas, and select triggers. Never remove focus styles.
+- **Motion:** 120–200ms with `ease-brand`. No bounce, no parallax, no looping animation.
+  Skeletons are static `bg-muted` blocks, no shimmer.
+- **Light theme only.** Do not add `dark:` classes, `next-themes`, or a theme toggle.
+- **shadcn first.** Before hand-rolling a primitive, check the shadcn registry, then
+  restyle it per Design.md §4.
+- **Copy:** short and plain. Headings and labels in sentence case, buttons in Title Case,
+  outline buttons and eyebrows uppercase via CSS. No emoji, no exclamation marks.
+- **Freelancer screens never show other freelancers**: no names, avatars, counts, or
+  totals that include other people's time (PRD §4).
