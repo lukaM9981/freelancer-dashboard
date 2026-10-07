@@ -1,5 +1,32 @@
 # Olifant Workboard — Product Requirements Document
 
+## Build status
+
+| Phase | What it covers | PRD | Estimate | Status |
+| --- | --- | --- | --- | --- |
+| 1. Project setup | Next.js 16, shadcn (base-nova), design kit, packages | §10 | 2–3 h | Done (2026-10-07) |
+| 2. Database | Migrations 0001–0010 applied, types generated | DB.md | 1–2 h | Done (2026-10-07) |
+| 3. Sign-in and first Admin | Sign in, password reset, invitation acceptance, bootstrap script | §6.1 | 6–9 h | Done (2026-10-07) |
+| 4. App shell and components | Navigation by role, page header, StatusBadge, HoursMeter, StatCard, DurationInput, EmptyState, formatting libraries, /styleguide | §9, §10 | 9–13 h | Done (2026-10-07) |
+| 5. People and settings | Invite, resend, revoke (email via Resend if configured, otherwise a copyable link); people list and detail; rates; deactivation; settings; profile | §6.1, §6.2, §6.14 | 6–9 h | In progress |
+| 6. Projects | Projects, statuses, members | §6.3 | 3–5 h | Not started |
+| 7. Tasks | List, detail, editor, estimate, links, comments, task history | §5.1, §5.2, §6.4, §6.9 | 8–12 h | Not started |
+| 8. Proposals and approvals | Submit, approvals inbox, review, approve all, request changes, reject, withdraw | §5.3, §6.5 | 6–9 h | Not started |
+| 9. Timer | Start, stop, discard, timer bar on every device, review dialog, automatic stops, 10-hour warning | §5.5, §6.8 | 6–9 h | Not started |
+| 10. Manual time and My time | Manual entries, edit, delete, My time screen | §6.8 | 4–6 h | Not started |
+| 11. Limits and task lifecycle | Hours meter, extra-hours requests, over-limit prompts, hold, resume, cancel, reassign, done, accept, return | §5.1, §5.4, §6.6, §6.7 | 5–7 h | Not started |
+| 12. Months and reports | Month close and reopen, monthly report, CSV export | §5.6, §5.7, §6.10 | 6–9 h | Not started |
+| 13. Dashboards | Admin and freelancer dashboards | §6.11 | 6–9 h | Not started |
+| 14. Notifications and email | Bell with live updates, notifications page, Resend emails, outbox, retry job (migration 0011) | §6.12 | 7–10 h | Not started |
+| 15. Audit log | Admin audit log with filters | §6.13 | 2–4 h | Not started |
+| 16. Quality pass | Database tests (pgTAP from supabase/scenarios), responsive and accessibility pass, Playwright smoke test | §10 | 9–13 h | Not started |
+| 17. Demo and deploy | Demo data, Vercel deploy, production Supabase settings, Resend domain | Tech.md §17 | 3–5 h | Not started |
+| **Total** | | | **89–134 h** | |
+
+### Notes (built differently from the PRD)
+- Phase 3: passwords must be 8–72 characters; a deactivated person with a live session is signed out by the proxy.
+- Phase 4: a bare duration is hours (`10` is 10h, `10:30` is 10h 30m); estimates and extra hours snap to the nearest 15 minutes. The Approvals count and the notification bell are empty slots until those phases. `getOrganizationSettings()` is a read-only query so dates can use the organization time zone.
+
 The database schema will live in `DB.md`, the architecture in `Tech.md`, and the visual
 rules in `Design.md`.
 
@@ -81,8 +108,8 @@ assigned to them, their own time, their own rate and earnings, and their own his
 never see other freelancers anywhere in the application: not their names, tasks, time,
 comments, or activity. Only Admins see across freelancers.
 
-An Admin can also be added to a project as a member and be assigned tasks. On those tasks
-they act as the freelancer.
+An Admin is the client. They are not assigned tasks and do not estimate, track time, or
+mark work done. They see every freelancer's time.
 
 **No self-approval.** Nobody decides on their own estimate or extra-hours request, or
 accepts their own work. If no other Admin exists, the item waits, and the submitter is
@@ -442,8 +469,7 @@ freelancers in the app.
 
 ### 6.11 Dashboards
 
-The landing screen after sign-in depends on the role. An Admin who is also assigned tasks
-sees the freelancer sections for their own work as well.
+The landing screen after sign-in depends on the role.
 
 **Admin**
 
@@ -533,9 +559,9 @@ read-only.
 | Create, edit, hold, or archive projects; manage members  | Yes                                    | No                                |
 | Create a task                                            | Yes, for anyone or unassigned          | Yes, assigned to self             |
 | Edit after submission, reassign, hold, resume, cancel    | Yes                                    | No                                |
-| Estimate, submit, withdraw                               | Only on tasks assigned to them         | Own tasks                         |
-| Decide estimates, extra hours, and acceptance            | Yes, never on their own tasks          | No                                |
-| Track time, request extra hours, mark as Done            | Only on tasks assigned to them         | Own tasks                         |
+| Estimate, submit, withdraw                               | No                                     | Own tasks                         |
+| Decide estimates, extra hours, and acceptance            | Yes                                    | No                                |
+| Track time, request extra hours, mark as Done            | No                                     | Own tasks                         |
 | Comment, add or remove links                             | Yes                                    | Own tasks                         |
 | See rates and amounts                                    | Everyone's                             | Own only                          |
 | Monthly report and CSV                                   | All freelancers                        | Own only                          |

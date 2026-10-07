@@ -277,7 +277,9 @@ thumb with `shadow-sm`.
 
 **Duration input** (custom, `components/duration-input.tsx`): accepts `1:30`, `1h 30m`,
 `90m`, or `1.5` and stores whole minutes; shows the parsed value as a caption ("= 1h 30m").
-For estimates and extra hours it snaps to 15-minute steps and says so in the helper text.
+A bare number is hours, the way a timesheet reads it: `10` is 10h and `10:30` is 10h 30m.
+For estimates and extra hours it snaps to the nearest 15-minute step and says so in the
+helper text.
 
 ### 4.3 Surfaces
 
@@ -394,7 +396,8 @@ with `lock-open`, closed = `bg-secondary text-secondary-foreground` with `lock`)
 
 ### 5.3 Formatting numbers, time, and money
 
-Put these helpers in `lib/format.ts` and use them everywhere; never format inline.
+Parsing and formatting live in `lib/duration.ts`, `lib/money.ts`, and `lib/dates.ts`.
+`lib/format.ts` re-exports them, which is what screens import. Never format inline.
 
 | What                   | Format                                      | Example                    |
 | ---------------------- | ------------------------------------------- | -------------------------- |
@@ -436,8 +439,8 @@ clock itself is not announced.
 ### 5.5 App shell and page layout
 
 - **Sidebar** (from `lg`): logo; Dashboard, Approvals (Admin, count badge), Projects, My
-  time, Reports, then for Admins Months, People, Audit log, Settings; the profile menu at
-  the bottom.
+  time (freelancers; their own entries), Reports, then for Admins Months, People, Audit
+  log, Settings; the profile menu at the bottom.
 - **Top bar**: menu button (below `lg`), the timer bar, the notification bell (ghost icon
   button with a brand count badge).
 - **Page header**: an `eyebrow` with the context (for example the project name), the `h1`,

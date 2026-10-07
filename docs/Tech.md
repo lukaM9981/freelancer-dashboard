@@ -519,28 +519,26 @@ Per environment:
 ## 18. Build order
 
 The build follows the product's own process: a list of tasks, each estimated as a range.
-Once the app runs, this list can be entered as the first project in it.
+Once the app runs, this list can be entered as the first project in it. Live status is
+in `docs/PRD.md` under "Build status".
 
-| #  | Task                                                                                     | Estimate | After  |
-| -- | ---------------------------------------------------------------------------------------- | -------- | ------ |
-| 1  | Scaffold Next.js 16 + shadcn (`base-nova`, Lucide), add the kit, create Supabase and Vercel projects, env vars | 2–3 h | — |
-| 2  | Apply migrations `0001`–`0011`, Supabase settings, Vault secrets, generate types          | 1–2 h    | 1      |
-| 3  | Run the scenario scripts locally, convert them to pgTAP                                   | 4–6 h    | 2      |
-| 4  | Auth: sign in, password reset, proxy, `(app)` layout, viewer helpers, bootstrap script    | 4–6 h    | 2      |
-| 5  | Invitations: invite, resend, revoke, accept page, Invitation email                        | 4–6 h    | 4      |
-| 6  | App shell and design components (sidebar, top bar, page header, StatusBadge, HoursMeter, StatCard, DurationInput, EmptyState), shadcn restyle, `/styleguide` | 6–9 h | 1 |
-| 7  | Error mapping, action results, `duration`/`money`/`dates` libraries with unit tests       | 3–4 h    | 1      |
-| 8  | People, rates, settings                                                                   | 4–6 h    | 5, 6, 7 |
-| 9  | Projects and membership                                                                   | 3–5 h    | 6, 7   |
-| 10 | Tasks: list, detail, editor, estimate, links, comments, history                           | 8–12 h   | 9      |
-| 11 | Proposals: new proposal, approvals inbox, proposal review and decisions                   | 6–9 h    | 10     |
-| 12 | Timer: start, stop, discard, timer bar with Realtime, review dialog, ten-hour warning     | 6–9 h    | 10     |
-| 13 | Manual time and My time: add, edit, delete                                                | 4–6 h    | 12     |
-| 14 | Extra hours and over-limit prompts; hold, resume, cancel, reassign; Done, accept, return  | 5–7 h    | 11, 13 |
-| 15 | Months: close and reopen with blockers, reports, CSV export                               | 6–9 h    | 13     |
-| 16 | Dashboards: Admin and freelancer                                                          | 6–9 h    | 14, 15 |
-| 17 | Notifications: bell with Realtime, list, email templates, dispatcher, cron endpoint       | 7–10 h   | 11     |
-| 18 | Audit log screen                                                                          | 2–4 h    | 10     |
-| 19 | Responsive and accessibility pass, Playwright smoke test                                  | 5–7 h    | all    |
-| 20 | Demo seed, deploy, end-to-end check                                                       | 3–5 h    | all    |
-|    | **Total**                                                                                 | **89–134 h** |    |
+| Phase | What it covers | PRD | Estimate |
+| --- | --- | --- | --- |
+| 1. Project setup | Next.js 16, shadcn (base-nova), design kit, packages | §10 | 2–3 h |
+| 2. Database | Migrations 0001–0010 applied, types generated | DB.md | 1–2 h |
+| 3. Sign-in and first Admin | Sign in, password reset, invitation acceptance, bootstrap script | §6.1 | 6–9 h |
+| 4. App shell and components | Navigation by role, page header, StatusBadge, HoursMeter, StatCard, DurationInput, EmptyState, formatting libraries, /styleguide | §9, §10 | 9–13 h |
+| 5. People and settings | Invite, resend, revoke (email via Resend if configured, otherwise a copyable link); people list and detail; rates; deactivation; settings; profile | §6.1, §6.2, §6.14 | 6–9 h |
+| 6. Projects | Projects, statuses, members | §6.3 | 3–5 h |
+| 7. Tasks | List, detail, editor, estimate, links, comments, task history | §5.1, §5.2, §6.4, §6.9 | 8–12 h |
+| 8. Proposals and approvals | Submit, approvals inbox, review, approve all, request changes, reject, withdraw | §5.3, §6.5 | 6–9 h |
+| 9. Timer | Start, stop, discard, timer bar on every device, review dialog, automatic stops, 10-hour warning | §5.5, §6.8 | 6–9 h |
+| 10. Manual time and My time | Manual entries, edit, delete, My time screen | §6.8 | 4–6 h |
+| 11. Limits and task lifecycle | Hours meter, extra-hours requests, over-limit prompts, hold, resume, cancel, reassign, done, accept, return | §5.1, §5.4, §6.6, §6.7 | 5–7 h |
+| 12. Months and reports | Month close and reopen, monthly report, CSV export | §5.6, §5.7, §6.10 | 6–9 h |
+| 13. Dashboards | Admin and freelancer dashboards | §6.11 | 6–9 h |
+| 14. Notifications and email | Bell with live updates, notifications page, Resend emails, outbox, retry job (migration 0011) | §6.12 | 7–10 h |
+| 15. Audit log | Admin audit log with filters | §6.13 | 2–4 h |
+| 16. Quality pass | Database tests (pgTAP from supabase/scenarios), responsive and accessibility pass, Playwright smoke test | §10 | 9–13 h |
+| 17. Demo and deploy | Demo data, Vercel deploy, production Supabase settings, Resend domain | Tech.md §17 | 3–5 h |
+| **Total** | | | **89–134 h** |

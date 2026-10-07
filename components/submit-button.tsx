@@ -1,7 +1,7 @@
 "use client";
 
 import { Loader2Icon } from "lucide-react";
-import { cn } from "cn";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 type SubmitButtonProps = React.ComponentProps<typeof Button> & { pending: boolean };

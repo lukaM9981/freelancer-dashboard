@@ -58,3 +58,10 @@ export async function requireAdmin(): Promise<Viewer> {
   if (viewer.role !== "admin") redirect(HOME_PATH);
   return viewer;
 }
+
+/** My time is a freelancer screen (PRD §9). Admins are sent back to the dashboard. */
+export async function requireFreelancer(): Promise<Viewer> {
+  const viewer = await requireViewer();
+  if (viewer.role !== "freelancer") redirect(HOME_PATH);
+  return viewer;
+}

@@ -1,0 +1,12 @@
+---
+description: Build phases and live status. Stay inside the current phase unless asked to go further.
+alwaysApply: true
+---
+
+# Build status
+
+Every task belongs to a phase in `docs/PRD.md` under "Build status". Work only within that phase's PRD sections.
+
+- If a request is outside the PRD scope (PRD §3 Non-goals) or belongs to a later phase, say so and ask before building.
+- When a phase is finished and `npm run build` (and `npm test`, once it exists) passes: set it to "Done (YYYY-MM-DD)", set the next phase to "In progress", and add a line under "Notes" for anything built differently from the PRD.
+- Never mark a phase Done while the build or tests fail.

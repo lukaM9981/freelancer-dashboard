@@ -1,5 +1,5 @@
 import { CircleCheckIcon, TriangleAlertIcon } from "lucide-react";
-import { cn } from "cn";
+import { cn } from "@/lib/utils";
 
 type NoticeProps = {
   variant: "success" | "error";
