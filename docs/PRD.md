@@ -8,8 +8,8 @@
 | 2. Database | Migrations 0001–0010 applied, types generated | DB.md | 1–2 h | Done (2026-10-07) |
 | 3. Sign-in and first Admin | Sign in, password reset, invitation acceptance, bootstrap script | §6.1 | 6–9 h | Done (2026-10-07) |
 | 4. App shell and components | Navigation by role, page header, StatusBadge, HoursMeter, StatCard, DurationInput, EmptyState, formatting libraries, /styleguide | §9, §10 | 9–13 h | Done (2026-10-07) |
-| 5. People and settings | Invite, resend, revoke (email via Resend if configured, otherwise a copyable link); people list and detail; rates; deactivation; settings; profile | §6.1, §6.2, §6.14 | 6–9 h | In progress |
-| 6. Projects | Projects, statuses, members | §6.3 | 3–5 h | Not started |
+| 5. People and settings | Invite, resend, revoke (email via Resend if configured, otherwise a copyable link); people list and detail; rates; deactivation; settings; profile | §6.1, §6.2, §6.14 | 6–9 h | Done (2026-10-07) |
+| 6. Projects | Projects, statuses, members | §6.3 | 3–5 h | In progress |
 | 7. Tasks | List, detail, editor, estimate, links, comments, task history | §5.1, §5.2, §6.4, §6.9 | 8–12 h | Not started |
 | 8. Proposals and approvals | Submit, approvals inbox, review, approve all, request changes, reject, withdraw | §5.3, §6.5 | 6–9 h | Not started |
 | 9. Timer | Start, stop, discard, timer bar on every device, review dialog, automatic stops, 10-hour warning | §5.5, §6.8 | 6–9 h | Not started |
@@ -26,6 +26,7 @@
 ### Notes (built differently from the PRD)
 - Phase 3: passwords must be 8–72 characters; a deactivated person with a live session is signed out by the proxy.
 - Phase 4: a bare duration is hours (`10` is 10h, `10:30` is 10h 30m); estimates and extra hours snap to the nearest 15 minutes. The Approvals count and the notification bell are empty slots until those phases. `getOrganizationSettings()` is a read-only query so dates can use the organization time zone.
+- Phase 5: an invitation link is shown once when Resend is not configured or the send fails, because only the hash is stored. Changing a password requires the current password. Tolerance is a whole number. Rates are set on freelancers only. Project memberships are shown and stay read-only until phase 6.
 
 The database schema will live in `DB.md`, the architecture in `Tech.md`, and the visual
 rules in `Design.md`.
@@ -261,8 +262,9 @@ of recorded events is in section 6.13.
 ### 6.1 Authentication and invitations
 
 - There is no public registration. An Admin invites a person by email, with their name and
-  role. The invitation email contains a link valid for seven days, where the person sets a
-  password and is signed in.
+  role. The link is valid for seven days, where the person sets a password and is signed in.
+  The link is emailed when email delivery is configured. When it is not, or sending fails,
+  the Admin sees the link once and can copy it. Resending creates a new link.
 - An Admin can resend or revoke a pending invitation.
 - Sign in with email and password, sign out, and reset a forgotten password through an
   emailed link.
@@ -278,9 +280,9 @@ projects, and current rate.
 
 - Profile and role.
 - Project memberships.
-- Rate history. Adding a rate requires an amount, a currency (EUR or USD), and an
-  effective-from date, which cannot fall inside a closed month. A rate whose effective date
-  is still in the future can be deleted; any other rate is permanent.
+- Rate history, for freelancers. Adding a rate requires an amount, a currency (EUR or USD),
+  and an effective-from date, which cannot fall inside a closed month. A rate whose effective
+  date is still in the future can be deleted; any other rate is permanent.
 
 **Deactivation.** An Admin can deactivate a person: they can no longer sign in, any running
 timer is stopped, and they disappear from assignment lists, while all their history stays.
@@ -541,12 +543,12 @@ month closed and reopened; settings changed.
 
 ### 6.14 Settings and profile
 
-**Settings** (Admin): organization name, time zone, tolerance percentage (0–100, default
-10), and the default currency suggested for new rates. Changing the tolerance applies to
-open months immediately and never to closed months.
+**Settings** (Admin): organization name, time zone, tolerance percentage (a whole number
+from 0 to 100, default 10), and the default currency suggested for new rates. Changing the
+tolerance applies to open months immediately and never to closed months.
 
-**Profile** (everyone): own name and password. Freelancers also see their own rate history,
-read-only.
+**Profile** (everyone): own name and password. Changing the password requires the current
+password. Freelancers also see their own rate history, read-only.
 
 ## 7. Permissions
 

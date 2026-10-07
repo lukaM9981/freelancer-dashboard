@@ -183,14 +183,16 @@ There is no sign-up screen, and **"Allow new users to sign up" is off** in the S
 dashboard. The database refuses any auth user without a valid invitation as well
 (`app.handle_new_user`).
 
-**Inviting** (Admin, `lib/invitations/actions.ts`):
+**Inviting** (Admin, `lib/people/actions.ts`):
 
 1. Generate a token: 32 random bytes, base64url. Hash it with sha256 (hex).
 2. Call `create_invitation(email, full_name, role, token_hash)`.
-3. Send the Invitation email with `${APP_URL}/invite/${token}`. The raw token exists only
-   in that email.
-4. If sending fails, call `record_invitation_send_error(id, message)` and show the error
-   with a Resend button. Resending generates a new token and calls `renew_invitation`.
+3. Send the Invitation email with `${APP_URL}/invite/${token}` when `RESEND_API_KEY` and
+   `EMAIL_FROM` are set. The raw token is not stored.
+4. If email is not configured, or sending fails, the action returns the link once so the
+   Admin can copy it. It cannot be shown again, because only the hash is stored. A failed
+   send calls `record_invitation_send_error(id, message)`. Resending generates a new token
+   and calls `renew_invitation`.
 
 **Accepting** (`app/(auth)/invite/[token]/page.tsx`):
 
@@ -264,7 +266,8 @@ keeps that visible in review.
 **The secret key** (formerly the service role key) is used only by `lib/supabase/admin.ts`,
 which is `import 'server-only'` and imported by exactly three places: the invitation
 lookup and accept action (`lib/invitations/queries.ts`, `lib/invitations/actions.ts`),
-the deactivate/reactivate actions (auth bans), and the email dispatcher. The scripts
+the deactivate and reactivate actions in `lib/people/actions.ts` (auth bans), and the email
+dispatcher. The scripts
 create their own secret-key client (section 5.3). Nothing prefixed `NEXT_PUBLIC_` ever holds it.
 
 **The browser client** (`utils/supabase/client.ts`) is used for one thing: Realtime

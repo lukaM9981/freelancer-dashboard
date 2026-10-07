@@ -31,6 +31,24 @@ export const resetPasswordSchema = z
   .refine(passwordsMatch.check, passwordsMatch.params);
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 
+export const updateProfileSchema = z.object({
+  fullName: z.string().trim().min(1, "Enter your name.").max(120, "Use at most 120 characters."),
+});
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Enter your current password."),
+    password: newPassword,
+    confirmPassword: z.string(),
+  })
+  .refine(passwordsMatch.check, passwordsMatch.params)
+  .refine((data) => data.currentPassword !== data.password, {
+    message: "Choose a password different from your current one.",
+    path: ["password"],
+  });
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+
 export const acceptInvitationSchema = z
   .object({
     token: z.string().min(1),

@@ -2,7 +2,7 @@
  * The one import for display formatting (Design.md §5.3).
  * Parsing lives beside each formatter; screens should not format inline.
  */
-export { formatDate, formatDateTime, formatRelative } from "@/lib/dates";
+export { formatCalendarDate, formatDate, formatDateTime, formatRelative } from "@/lib/dates";
 export { formatDuration, parseDuration, snapMinutes } from "@/lib/duration";
 export { formatAmounts, formatMoney, toCents, type Currency, type Money } from "@/lib/money";
 

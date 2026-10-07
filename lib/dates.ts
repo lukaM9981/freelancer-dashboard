@@ -18,6 +18,31 @@ export function formatDate(value: DateInput, timeZone: string): string {
   return formatInZone(value, timeZone, "d MMM yyyy");
 }
 
+/** A `yyyy-MM-dd` calendar date, with no time zone shift. "2026-10-06" → "6 Oct 2026". */
+export function formatCalendarDate(isoDate: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate);
+  if (!match) throw new Error("That isn't a valid date.");
+  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12));
+  return format(date, "d MMM yyyy", { in: tz("UTC") });
+}
+
+/** Calendar date in a named zone, `yyyy-MM-dd`. */
+export function isoDateInZone(timeZone: string, now: Date = new Date()): string {
+  return format(now, "yyyy-MM-dd", { in: tz(timeZone) });
+}
+
+/** First day of the month after a `yyyy-MM-01` month start. */
+export function nextMonthStart(monthStart: string): string {
+  const match = /^(\d{4})-(\d{2})-01$/.exec(monthStart);
+  if (!match) throw new Error("A month starts on the first.");
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  if (month < 1 || month > 12) throw new Error("A month starts on the first.");
+  const nextMonth = month === 12 ? 1 : month + 1;
+  const nextYear = month === 12 ? year + 1 : year;
+  return `${nextYear}-${String(nextMonth).padStart(2, "0")}-01`;
+}
+
 /** "6 Oct 2026, 14:05" */
 export function formatDateTime(value: DateInput, timeZone: string): string {
   return formatInZone(value, timeZone, "d MMM yyyy, HH:mm");

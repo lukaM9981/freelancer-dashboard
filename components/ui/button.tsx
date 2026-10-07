@@ -10,7 +10,7 @@ const buttonVariants = cva(
         default:
           "bg-primary font-heading font-bold text-primary-foreground hover:bg-secondary hover:text-secondary-foreground disabled:bg-yellow-100 disabled:text-neutral-400",
         secondary:
-          "bg-secondary font-heading font-bold text-secondary-foreground hover:bg-neutral-700 disabled:bg-neutral-300 disabled:text-neutral-100",
+          "bg-secondary font-heading font-bold text-secondary-foreground! hover:bg-neutral-700 disabled:bg-neutral-300 disabled:text-neutral-100!",
         outline:
           "border-[1.5px] border-foreground bg-transparent font-sans font-bold tracking-wide text-foreground uppercase hover:bg-muted aria-expanded:bg-muted disabled:opacity-50",
         ghost:

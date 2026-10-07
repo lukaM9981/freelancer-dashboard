@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { formatDate, formatDateTime, formatRelative } from "@/lib/dates";
+import {
+  formatCalendarDate,
+  formatDate,
+  formatDateTime,
+  formatRelative,
+  isoDateInZone,
+  nextMonthStart,
+} from "@/lib/dates";
 
 const zone = "Europe/Budapest";
 
@@ -7,6 +14,15 @@ describe("formatDate", () => {
   it("renders the organization's time zone, not UTC", () => {
     expect(formatDateTime("2026-10-06T12:05:00.000Z", zone)).toBe("6 Oct 2026, 14:05");
     expect(formatDate("2026-10-06T22:30:00.000Z", zone)).toBe("7 Oct 2026");
+  });
+});
+
+describe("isoDateInZone", () => {
+  it("uses the organization zone around midnight", () => {
+    expect(isoDateInZone(zone, new Date("2026-10-07T22:30:00.000Z"))).toBe("2026-10-08");
+    expect(nextMonthStart("2026-09-01")).toBe("2026-10-01");
+    expect(nextMonthStart("2026-12-01")).toBe("2027-01-01");
+    expect(formatCalendarDate("2026-10-06")).toBe("6 Oct 2026");
   });
 });
 

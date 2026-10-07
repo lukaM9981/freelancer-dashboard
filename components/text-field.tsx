@@ -9,6 +9,8 @@ type TextFieldProps<T extends FieldValues> = {
   name: Path<T>;
   label: string;
   description?: React.ReactNode;
+  /** Store a number instead of the input's string. */
+  valueAsNumber?: boolean;
 } & Omit<React.ComponentProps<typeof Input>, "name" | "value" | "defaultValue" | "onChange" | "onBlur">;
 
 export function TextField<T extends FieldValues>({
@@ -17,6 +19,7 @@ export function TextField<T extends FieldValues>({
   label,
   description,
   id,
+  valueAsNumber = false,
   ...inputProps
 }: TextFieldProps<T>) {
   const inputId = id ?? `field-${name}`;
@@ -33,6 +36,15 @@ export function TextField<T extends FieldValues>({
           <Input
             {...inputProps}
             {...field}
+            value={valueAsNumber && typeof field.value === "number" && Number.isNaN(field.value) ? "" : field.value}
+            onChange={(event) => {
+              if (!valueAsNumber) {
+                field.onChange(event);
+                return;
+              }
+              const next = event.target.value;
+              field.onChange(next === "" ? Number.NaN : Number(next));
+            }}
             id={inputId}
             aria-invalid={fieldState.invalid}
             aria-describedby={

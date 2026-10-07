@@ -10,6 +10,10 @@ export const ERROR_MESSAGES = {
   invitation_not_pending: "This invitation was already accepted or revoked.",
   no_valid_invitation: "This invitation link has expired. Ask Olifant for a new one.",
   last_admin: "There must always be at least one active Admin.",
+  rate_in_closed_month: "That date is in a closed month. Choose a later date.",
+  rate_not_deletable: "Only a rate that hasn't started yet can be deleted.",
+  rate_not_found: "This rate doesn't exist, or you can't see it.",
+  invalid_time_zone: "Choose a time zone from the list.",
 } as const satisfies Record<string, string>;
 
 export type ErrorKey = keyof typeof ERROR_MESSAGES;
