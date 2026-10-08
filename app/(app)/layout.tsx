@@ -3,15 +3,18 @@ import { TopBar } from "@/components/layout/top-bar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { requireViewer } from "@/lib/auth/queries";
+import { countApprovalQueue } from "@/lib/proposals/queries";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const viewer = await requireViewer();
+  const approvalsCount = viewer.role === "admin" ? await countApprovalQueue() : undefined;
 
   return (
     <TooltipProvider>
       <SidebarProvider open>
         <AppSidebar
           viewer={{ fullName: viewer.fullName, email: viewer.email, role: viewer.role }}
+          approvalsCount={approvalsCount}
         />
         <SidebarInset>
           <TopBar />

@@ -17,7 +17,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { signOut } from "@/lib/auth/actions";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { PersonAvatar } from "@/components/person-avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -61,7 +61,7 @@ const NAV: NavItem[] = [
 
 type AppSidebarProps = {
   viewer: { fullName: string; email: string; role: "admin" | "freelancer" };
-  /** Shown on Approvals once that inbox exists. Omitted until then. */
+  /** Admins only: everything waiting in the approvals inbox. */
   approvalsCount?: number;
 };
 
@@ -133,9 +133,7 @@ function ProfileMenu({ name, email }: { name: string; email: string }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="flex w-full items-center gap-3 rounded-sm px-2 py-2 text-left transition-colors duration-150 ease-brand hover:bg-sidebar-accent focus-ring">
-        <Avatar size="sm">
-          <AvatarFallback>{initials(name)}</AvatarFallback>
-        </Avatar>
+        <PersonAvatar name={name} />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-body-xs font-medium">{name}</span>
           <span className="block truncate text-caption text-muted-foreground">{email}</span>
@@ -157,11 +155,4 @@ function ProfileMenu({ name, email }: { name: string; email: string }) {
 function isActive(pathname: string, href: string) {
   if (href === "/dashboard") return pathname === href;
   return pathname === href || pathname.startsWith(`${href}/`);
-}
-
-function initials(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 }

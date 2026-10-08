@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { StatCard } from "@/components/stat-card";
 import { StatusBadge } from "@/components/status-badge";
 import { type CommentView, CommentsSection } from "@/components/tasks/comments-section";
+import { SubmitTaskButton, WithdrawButton } from "@/components/proposals/proposal-actions";
 import { DeleteTaskButton } from "@/components/tasks/delete-task-button";
 import { LinksSection } from "@/components/tasks/links-section";
 import { buttonVariants } from "@/components/ui/button";
@@ -42,6 +43,29 @@ export default async function TaskPage({ params }: TaskPageProps) {
   const isAdmin = viewer.role === "admin";
   const { actions } = task;
   const shownEstimate = task.approvedEstimate ?? task.estimate;
+  const pendingRevision = task.revisions.find((revision) => revision.decision === "pending");
+  const headerActions = [
+    actions.submit ? <SubmitTaskButton key="submit" projectId={task.project.id} taskId={task.id} /> : null,
+    actions.decideEstimate && pendingRevision ? (
+      <Link key="review" href={`/approvals/${pendingRevision.proposalId}`} className={buttonVariants()}>
+        Review Proposal
+      </Link>
+    ) : null,
+    actions.withdraw && pendingRevision ? (
+      <WithdrawButton
+        key="withdraw"
+        proposalId={pendingRevision.proposalId}
+        revisionIds={[pendingRevision.id]}
+        label="Withdraw"
+      />
+    ) : null,
+    actions.editDetails ? (
+      <Link key="edit" href={`/tasks/${task.id}/edit`} className={buttonVariants({ variant: "outline" })}>
+        Edit
+      </Link>
+    ) : null,
+    actions.delete ? <DeleteTaskButton key="delete" taskId={task.id} title={task.title} /> : null,
+  ].filter(Boolean);
   const comments: CommentView[] = task.comments.map((comment) => ({
     id: comment.id,
     authorName: comment.authorId === viewer.id ? "You" : comment.authorName,
@@ -66,15 +90,8 @@ export default async function TaskPage({ params }: TaskPageProps) {
           eyebrow={task.project.name}
           title={task.title}
           action={
-            actions.editDetails || actions.delete ? (
-              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap lg:justify-end">
-                {actions.editDetails ? (
-                  <Link href={`/tasks/${task.id}/edit`} className={buttonVariants({ variant: "outline" })}>
-                    Edit
-                  </Link>
-                ) : null}
-                {actions.delete ? <DeleteTaskButton taskId={task.id} title={task.title} /> : null}
-              </div>
+            headerActions.length > 0 ? (
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap lg:justify-end">{headerActions}</div>
             ) : undefined
           }
         />
@@ -262,8 +279,16 @@ function EstimateHistory({ task }: { task: TaskDetail }) {
             </span>
             <StatusBadge kind="revision" status={revision.decision} />
           </div>
-          <p className="font-mono text-caption text-muted-foreground">
-            Submitted {formatDateTime(revision.submittedAt, task.timeZone)}
+          <p className="flex flex-wrap items-center justify-between gap-2">
+            <span className="font-mono text-caption text-muted-foreground">
+              Submitted {formatDateTime(revision.submittedAt, task.timeZone)}
+            </span>
+            <Link
+              href={`/approvals/${revision.proposalId}`}
+              className="rounded-sm text-caption text-link underline-offset-4 hover:underline focus-ring"
+            >
+              View proposal
+            </Link>
           </p>
           {revision.note ? <p className="whitespace-pre-line text-body-xs">{revision.note}</p> : null}
           {revision.decidedAt && revision.decision !== "withdrawn" ? (

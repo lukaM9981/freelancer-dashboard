@@ -2,9 +2,19 @@
  * The one import for display formatting (Design.md §5.3).
  * Parsing lives beside each formatter; screens should not format inline.
  */
-export { formatCalendarDate, formatDate, formatDateTime, formatRelative } from "@/lib/dates";
+import { formatMoney, type Money } from "@/lib/money";
+
+export { formatAge, formatCalendarDate, formatDate, formatDateTime, formatRelative } from "@/lib/dates";
 export { formatDuration, parseDuration, snapMinutes } from "@/lib/duration";
 export { formatAmounts, formatMoney, toCents, type Currency, type Money } from "@/lib/money";
+
+/** "€180.00–€360.00". Both ends are in the same currency. */
+export function formatMoneyRange(min: Money, max: Money): string {
+  if (min.currency !== max.currency) {
+    throw new Error("A money range is in one currency.");
+  }
+  return `${formatMoney(min.cents, min.currency)}\u2013${formatMoney(max.cents, max.currency)}`;
+}
 
 /** "4–8 h", "2.5–3.75 h". Decimal hours, en dash. */
 export function formatEstimateRange(minMinutes: number, maxMinutes: number): string {

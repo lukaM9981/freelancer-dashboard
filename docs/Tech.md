@@ -96,7 +96,7 @@ app/
     layout.tsx                      requireViewer() + app shell + timer bar
     dashboard/page.tsx              Admin or freelancer sections (PRD §6.11)
     approvals/page.tsx              Admin inbox
-    approvals/[proposalId]/page.tsx proposal review
+    approvals/[proposalId]/page.tsx proposal review (Admins decide; the submitter views and withdraws)
     projects/page.tsx
     projects/[id]/page.tsx
     tasks/new/page.tsx
@@ -285,16 +285,25 @@ updated with them; unit tests cover them.
 
 ### 7.2 Proposals and approvals
 
-- **New proposal** lists the freelancer's Draft and Changes requested tasks in a project
-  with their estimates; tasks without an estimate cannot be selected. Submitting calls
-  `submit_proposal(project_id, task_ids)`.
-- **Proposal detail** (Admin) shows the items with the totals and cost range (estimate ×
-  the freelancer's current rate, from `rates`). Per-item buttons collect decisions;
-  rejecting or requesting changes opens a dialog with a required comment. Each decision is
-  sent immediately as a one-item `decide_estimates`; "Approve All Remaining" calls
-  `approve_all_remaining`, which is one action and therefore one email.
-- If the submitter is the only Admin (an Admin assigned to their own task), the submit
-  screen warns that nobody else can approve it (PRD §4).
+- **New proposal** (`/proposals/new?project=…`, opened from the project page) lists the
+  freelancer's Draft and Changes requested tasks in a project with their estimates; tasks
+  without an estimate cannot be selected. Submitting calls
+  `submit_proposal(project_id, task_ids)` and opens the proposal. The task detail's
+  "Submit" button submits that one task as a one-item proposal.
+- **Proposal detail** (`/approvals/[proposalId]`) shows the items with the totals and cost
+  range (estimate × the freelancer's current rate, from `rates`, rounded to cents in integer
+  arithmetic; withdrawn items are left out). Admins get per-item buttons; rejecting or
+  requesting changes opens a dialog with a required comment. Each decision is sent
+  immediately as a one-item `decide_estimates`; "Approve All Remaining" calls
+  `approve_all_remaining`, which is one action and therefore one email. The submitter sees
+  the same page read-only and can withdraw undecided items (`withdraw_estimates`), here or
+  on the task detail.
+- **Approvals inbox** lists every `approval_queue` row oldest first, with its age. Proposals
+  open the proposal detail; extra-hours requests and Done tasks open the task detail. The
+  sidebar badge counts the same rows. Completed proposals are reached from the task's
+  estimate history.
+- Only freelancers can be project members, so an Admin is never an assignee and never
+  submits; the database still refuses self-approval (PRD §4).
 
 ### 7.3 Timer
 

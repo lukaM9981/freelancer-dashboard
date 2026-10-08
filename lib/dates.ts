@@ -74,6 +74,15 @@ export function formatRelative(value: DateInput, timeZone: string, now: Date = n
   return formatDate(moment, timeZone);
 }
 
+/** How long something has been waiting: "under 1h", "5h", "1 day", "3 days". */
+export function formatAge(since: DateInput, now: Date = new Date()): string {
+  const hours = differenceInHours(now, asDate(since));
+  if (hours < 1) return "under 1h";
+  if (hours < 24) return `${hours}h`;
+  const days = Math.floor(hours / 24);
+  return days === 1 ? "1 day" : `${days} days`;
+}
+
 function formatInZone(value: DateInput, timeZone: string, pattern: string): string {
   return format(asDate(value), pattern, { in: tz(timeZone) });
 }

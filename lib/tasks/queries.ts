@@ -15,6 +15,7 @@ export type Estimate = { minMinutes: number; maxMinutes: number; note: string | 
 
 export type EstimateRevision = {
   id: string;
+  proposalId: string;
   number: number;
   minMinutes: number;
   maxMinutes: number;
@@ -143,7 +144,7 @@ export const getTask = cache(async (taskId: string, viewer: Viewer): Promise<Tas
     supabase
       .from("estimate_revisions")
       .select(
-        "id, revision_number, min_minutes, max_minutes, note, submitted_at, decision, decided_at, decision_comment, decider:profiles!estimate_revisions_decided_by_fkey(full_name)",
+        "id, proposal_id, revision_number, min_minutes, max_minutes, note, submitted_at, decision, decided_at, decision_comment, decider:profiles!estimate_revisions_decided_by_fkey(full_name)",
       )
       .eq("task_id", taskId)
       .order("revision_number", { ascending: false }),
@@ -191,6 +192,7 @@ export const getTask = cache(async (taskId: string, viewer: Viewer): Promise<Tas
   const project = embedded<{ id: string; name: string; status: string }>(task.data.project);
   const revisionRows: EstimateRevision[] = (revisions.data ?? []).map((row) => ({
     id: row.id,
+    proposalId: row.proposal_id,
     number: row.revision_number,
     minMinutes: row.min_minutes,
     maxMinutes: row.max_minutes,

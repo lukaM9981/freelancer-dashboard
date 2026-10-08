@@ -30,6 +30,15 @@ export const ERROR_MESSAGES = {
   task_was_submitted: "This task has been submitted, so it can't be deleted. An Admin can cancel it instead.",
   task_has_time: "Time has been tracked on this task, so it can't be reassigned. Cancel it instead.",
   self_approval_not_allowed: "You can't decide on your own task. Another Admin has to do it.",
+  task_not_in_project: "Every task in a proposal must belong to the same project.",
+  no_tasks: "Select at least one task to submit.",
+  estimate_incomplete: "Every task needs an estimate before it can be submitted. Edit the task to add one.",
+  revision_not_found: "This item doesn't exist, or you can't see it.",
+  revision_already_decided: "This item was already decided or withdrawn. Reload the page.",
+  nothing_pending: "Every item in this proposal has already been decided.",
+  no_decisions: "Choose a decision first.",
+  invalid_decision: "Choose approve, request changes, or reject.",
+  comment_required: "Write a comment. It's required when rejecting or requesting changes.",
 } as const satisfies Record<string, string>;
 
 export type ErrorKey = keyof typeof ERROR_MESSAGES;

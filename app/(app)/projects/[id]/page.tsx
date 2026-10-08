@@ -68,6 +68,19 @@ export default async function ProjectPage({ params, searchParams }: ProjectPageP
       New Task
     </Link>
   ) : null;
+  const canPropose =
+    !isAdmin && !archived && project.tasks.some((task) => task.status === "draft" || task.status === "changes_requested");
+  const freelancerActions =
+    newTaskButton || canPropose ? (
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap lg:justify-end">
+        {canPropose ? (
+          <Link href={`/proposals/new?project=${project.id}`} className={buttonVariants({ variant: "secondary" })}>
+            Submit Proposal
+          </Link>
+        ) : null}
+        {newTaskButton}
+      </div>
+    ) : undefined;
 
   const assigneeOptions = isAdmin ? assigneeOptionsFor(project.tasks) : null;
   const statusFilter = single(query.status);
@@ -108,7 +121,7 @@ export default async function ProjectPage({ params, searchParams }: ProjectPageP
                 <ProjectStatusActions projectId={project.id} status={project.status} />
               </div>
             ) : (
-              (newTaskButton ?? undefined)
+              freelancerActions
             )
           }
         />
