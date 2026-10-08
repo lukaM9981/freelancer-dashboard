@@ -6,27 +6,52 @@ import { createClient } from "@/utils/supabase/server";
 import { requireViewer } from "@/lib/auth/queries";
 import { errorMessage, isErrorKey } from "@/lib/db/errors";
 import { type ActionResult, type FieldErrors, fail, invalidInput, ok } from "@/lib/db/result";
+import { getOrganizationSettings } from "@/lib/settings/queries";
+import { resolveEntryEdit } from "@/lib/time/run";
 import {
+  type AddTimeEntryInput,
+  type DeleteTimeEntryInput,
   type EntryDescriptionInput,
   type StartTimerInput,
   type StopTimerInput,
+  type UpdateManualEntryInput,
+  type UpdateTimedEntryInput,
+  addTimeEntrySchema,
+  deleteTimeEntrySchema,
   entryDescriptionSchema,
   startTimerSchema,
   stopTimerSchema,
+  updateManualEntrySchema,
+  updateTimedEntrySchema,
 } from "@/lib/time/schemas";
 
 type DbError = { message?: string; code?: string } | null;
 
 // Refusals the review dialog shows next to a field instead of only in a toast. The dialog
 // already checks start and end itself, so `timer_range_invalid` names no single field.
-const FIELD_OF_ERROR: Partial<Record<string, "startTime" | "endTime">> = {
+const TIMER_FIELDS: Partial<Record<string, string>> = {
   daily_limit_exceeded: "endTime",
 };
 
-function dbFailure(error: DbError): ActionResult<never> {
+const MANUAL_FIELDS: Partial<Record<string, string>> = {
+  work_date_in_future: "workDate",
+  work_date_before_approval: "workDate",
+  month_closed: "workDate",
+  daily_limit_exceeded: "minutes",
+};
+
+const TIMED_FIELDS: Partial<Record<string, string>> = {
+  work_date_in_future: "workDate",
+  work_date_before_approval: "workDate",
+  month_closed: "workDate",
+  daily_limit_exceeded: "endTime",
+  entry_spans_midnight: "endTime",
+};
+
+function dbFailure(error: DbError, fields: Partial<Record<string, string>> = TIMER_FIELDS): ActionResult<never> {
   const message = errorMessage(error);
   const code = isErrorKey(error?.message) ? error.message : undefined;
-  const field = code ? FIELD_OF_ERROR[code] : undefined;
+  const field = code ? fields[code] : undefined;
   const fieldErrors: FieldErrors | undefined = field ? { [field]: [message] } : undefined;
   return fail(message, fieldErrors, code);
 }
@@ -84,6 +109,77 @@ export async function correctEntryDescription(input: EntryDescriptionInput): Pro
     p_description: parsed.data.description,
   });
   if (error) return dbFailure(error);
+
+  revalidateTime();
+  return ok();
+}
+
+export async function addTimeEntry(input: AddTimeEntryInput): Promise<ActionResult> {
+  await requireViewer();
+  const parsed = addTimeEntrySchema.safeParse(input);
+  if (!parsed.success) return invalidInput(parsed.error);
+
+  const supabase = createClient(await cookies());
+  const { error } = await supabase.rpc("add_time_entry", {
+    p_task_id: parsed.data.taskId,
+    p_work_date: parsed.data.workDate,
+    p_minutes: parsed.data.minutes,
+    p_description: parsed.data.description,
+  });
+  if (error) return dbFailure(error, MANUAL_FIELDS);
+
+  revalidateTime();
+  return ok();
+}
+
+export async function updateManualEntry(input: UpdateManualEntryInput): Promise<ActionResult> {
+  await requireViewer();
+  const parsed = updateManualEntrySchema.safeParse(input);
+  if (!parsed.success) return invalidInput(parsed.error);
+
+  const supabase = createClient(await cookies());
+  const { error } = await supabase.rpc("update_time_entry", {
+    p_entry_id: parsed.data.entryId,
+    p_description: parsed.data.description,
+    p_work_date: parsed.data.workDate,
+    p_minutes: parsed.data.minutes,
+  });
+  if (error) return dbFailure(error, MANUAL_FIELDS);
+
+  revalidateTime();
+  return ok();
+}
+
+export async function updateTimedEntry(input: UpdateTimedEntryInput): Promise<ActionResult> {
+  await requireViewer();
+  const parsed = updateTimedEntrySchema.safeParse(input);
+  if (!parsed.success) return invalidInput(parsed.error);
+
+  const { timeZone } = await getOrganizationSettings();
+  const resolved = resolveEntryEdit(parsed.data, parsed.data, timeZone);
+  if (!resolved.ok) return fail("Check the highlighted fields.", { [resolved.field]: [resolved.message] });
+
+  const supabase = createClient(await cookies());
+  const { error } = await supabase.rpc("update_time_entry", {
+    p_entry_id: parsed.data.entryId,
+    p_description: parsed.data.description,
+    p_started_at: resolved.startedAt,
+    p_ended_at: resolved.endedAt,
+  });
+  if (error) return dbFailure(error, TIMED_FIELDS);
+
+  revalidateTime();
+  return ok();
+}
+
+export async function deleteTimeEntry(input: DeleteTimeEntryInput): Promise<ActionResult> {
+  await requireViewer();
+  const parsed = deleteTimeEntrySchema.safeParse(input);
+  if (!parsed.success) return invalidInput(parsed.error);
+
+  const supabase = createClient(await cookies());
+  const { error } = await supabase.rpc("delete_time_entry", { p_entry_id: parsed.data.entryId });
+  if (error) return dbFailure(error, {});
 
   revalidateTime();
   return ok();

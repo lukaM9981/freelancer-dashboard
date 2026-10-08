@@ -5,7 +5,8 @@ import { cookies } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 import type { ExtraHoursStatus, RevisionDecision, TaskStatus } from "@/components/status-badge";
 import type { Viewer } from "@/lib/auth/queries";
-import { nextMonthStart } from "@/lib/dates";
+import { isoDateInZone } from "@/lib/dates";
+import { earliestWorkDate, monthIsOpen } from "@/lib/time/bounds";
 import { isTaskStatus } from "@/lib/projects/figures";
 import type { ProjectStatus } from "@/lib/projects/schemas";
 import { getOrganizationSettings } from "@/lib/settings/queries";
@@ -48,6 +49,10 @@ export type TaskTimeEntry = {
   description: string;
   source: "timer" | "manual";
   autoStoppedReason: string | null;
+  startedAt: string | null;
+  endedAt: string | null;
+  /** The author may change the time while the month is open and the task still accepts it (PRD §6.8). */
+  canEdit: boolean;
   /** The author may correct the description while the entry's month is open (PRD §6.8). */
   canCorrectDescription: boolean;
 };
@@ -96,6 +101,10 @@ export type TaskDetail = {
   history: TaskHistoryEntry[];
   actions: TaskActions;
   timeZone: string;
+  /** First date a manual entry on this task may use, when the task has been approved. */
+  workDateMin: string | null;
+  /** Organization's today, `yyyy-MM-dd`. */
+  today: string;
 };
 
 export type AssigneeOption = { userId: string; fullName: string };
@@ -132,7 +141,7 @@ export const getTask = cache(async (taskId: string, viewer: Viewer): Promise<Tas
   const task = await supabase
     .from("tasks")
     .select(
-      "id, title, description, status, project_id, assignee_id, created_by, ever_submitted, estimate_min_minutes, estimate_max_minutes, estimate_note, approved_revision_id, limit_minutes, counted_minutes, over_limit_minutes, project:projects!tasks_project_id_fkey(id, name, status), assignee:profiles!tasks_assignee_id_fkey(full_name)",
+      "id, title, description, status, project_id, assignee_id, created_by, ever_submitted, estimate_min_minutes, estimate_max_minutes, estimate_note, approved_revision_id, limit_minutes, counted_minutes, over_limit_minutes, first_approved_on, project:projects!tasks_project_id_fkey(id, name, status), assignee:profiles!tasks_assignee_id_fkey(full_name)",
     )
     .eq("id", taskId)
     .maybeSingle();
@@ -163,7 +172,7 @@ export const getTask = cache(async (taskId: string, viewer: Viewer): Promise<Tas
     supabase
       .from("time_entries")
       .select(
-        "id, user_id, work_date, duration_minutes, counted_minutes, over_limit_minutes, description, source, auto_stopped_reason",
+        "id, user_id, work_date, duration_minutes, counted_minutes, over_limit_minutes, description, source, auto_stopped_reason, started_at, ended_at",
       )
       .eq("task_id", taskId)
       .order("work_date", { ascending: false })
@@ -235,6 +244,10 @@ export const getTask = cache(async (taskId: string, viewer: Viewer): Promise<Tas
     timerRunning: (timers.data ?? []).length > 0,
     extraHoursPending: extraHourRows.some((request) => request.status === "pending"),
   };
+  const acceptsTime =
+    task.data.assignee_id === viewer.id &&
+    (task.data.status === "approved" || task.data.status === "in_progress") &&
+    permissionTask.projectStatus === "active";
 
   return {
     id: task.data.id,
@@ -272,11 +285,18 @@ export const getTask = cache(async (taskId: string, viewer: Viewer): Promise<Tas
       description: row.description,
       source: row.source === "timer" ? "timer" : "manual",
       autoStoppedReason: row.auto_stopped_reason,
+      startedAt: row.started_at,
+      endedAt: row.ended_at,
       // Every month up to the most recently closed one is read-only.
+      canEdit:
+        row.user_id === viewer.id &&
+        acceptsTime &&
+        monthIsOpen(row.work_date, latestClosedMonth) &&
+        permissionTask.projectStatus !== "archived",
       canCorrectDescription:
         row.user_id === viewer.id &&
         permissionTask.projectStatus !== "archived" &&
-        (latestClosedMonth == null || row.work_date >= nextMonthStart(latestClosedMonth)),
+        monthIsOpen(row.work_date, latestClosedMonth),
     })),
     comments: (comments.data ?? []).map((row) => ({
       id: row.id,
@@ -305,6 +325,10 @@ export const getTask = cache(async (taskId: string, viewer: Viewer): Promise<Tas
     })),
     actions: availableActions(permissionTask, viewer),
     timeZone: settings.timeZone,
+    workDateMin: task.data.first_approved_on
+      ? earliestWorkDate(task.data.first_approved_on, latestClosedMonth)
+      : null,
+    today: isoDateInZone(settings.timeZone),
   };
 });
 

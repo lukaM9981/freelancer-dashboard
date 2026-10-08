@@ -45,7 +45,7 @@ export const ERROR_MESSAGES = {
   timer_range_invalid:
     "A run can be shortened but not extended. Add work done before the timer started as a manual entry.",
   timer_running_on_task: "The timer is still running on this task. Stop it first.",
-  daily_limit_exceeded: "This would put more than 24 hours on one day. Shorten the run.",
+  daily_limit_exceeded: "This would put more than 24 hours on one day. Enter less time.",
   work_date_in_future: "That date is in the future.",
   work_date_before_approval: "That date is before the task was approved.",
   month_closed: "That month is closed, so its time can't change.",

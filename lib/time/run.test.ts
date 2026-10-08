@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { localParts, resolveRun, splitRun, stopRange, zonedMoment } from "@/lib/time/run";
+import {
+  entryEditDefaults,
+  formatEntryClock,
+  localParts,
+  resolveEntryEdit,
+  resolveRun,
+  splitRun,
+  stopRange,
+  zonedMoment,
+} from "@/lib/time/run";
 
 const zone = "Europe/Budapest";
 
@@ -103,6 +112,48 @@ describe("resolveRun", () => {
 
   it("needs the end after the start", () => {
     expect(resolveRun({ ...untouched, startTime: "11:00", endTime: "11:00" }, run)).toMatchObject({
+      ok: false,
+      field: "endTime",
+    });
+  });
+});
+
+describe("resolveEntryEdit", () => {
+  function at(date: string, time: string): string {
+    const moment = zonedMoment(date, time, zone);
+    if (!moment) throw new Error("Expected a valid moment.");
+    return moment.toISOString();
+  }
+
+  const startedAt = at("2026-10-08", "14:05");
+  const endedAt = at("2026-10-08", "15:30");
+  const original = { startedAt, endedAt };
+
+  it("keeps the stored timestamps when the clock is left alone", () => {
+    const resolved = resolveEntryEdit(entryEditDefaults(startedAt, endedAt, zone), original, zone);
+    expect(resolved).toEqual({ ok: true, startedAt, endedAt, minutes: 85 });
+  });
+
+  it("keeps an end at midnight, and can end earlier the same day", () => {
+    const start = at("2026-10-08", "23:30");
+    const end = at("2026-10-09", "00:00");
+    const fields = entryEditDefaults(start, end, zone);
+    expect(fields.endsAtMidnight).toBe(true);
+    expect(formatEntryClock(start, end, zone)).toBe("23:30\u2013midnight");
+    expect(resolveEntryEdit(fields, { startedAt: start, endedAt: end }, zone)).toMatchObject({
+      ok: true,
+      startedAt: start,
+      endedAt: end,
+      minutes: 30,
+    });
+    expect(
+      resolveEntryEdit({ ...fields, endsAtMidnight: false, endTime: "23:45" }, { startedAt: start, endedAt: end }, zone),
+    ).toMatchObject({ ok: true, minutes: 15 });
+  });
+
+  it("refuses an end that is not after the start", () => {
+    const fields = entryEditDefaults(startedAt, endedAt, zone);
+    expect(resolveEntryEdit({ ...fields, endTime: "14:05" }, original, zone)).toMatchObject({
       ok: false,
       field: "endTime",
     });

@@ -1,5 +1,6 @@
 import { TZDate, tz } from "@date-fns/tz";
 import { addDays, format, startOfDay, startOfMinute } from "date-fns";
+import { addCalendarDays } from "@/lib/dates";
 
 /** A run past this shows the warning and asks to confirm the end (PRD §6.8). */
 export const LONG_RUN_MS = 10 * 60 * 60 * 1000;
@@ -104,6 +105,108 @@ export function resolveRun(
     return { ok: false, field: "endTime", message: "The end must be after the start." };
   }
   return { ok: true, start, end };
+}
+
+export type EntryEditFields = {
+  workDate: string;
+  startTime: string;
+  endTime: string;
+  endsAtMidnight: boolean;
+};
+
+export type ResolvedEntry =
+  | { ok: true; startedAt: string; endedAt: string; minutes: number }
+  | { ok: false; field: "workDate" | "startTime" | "endTime"; message: string };
+
+/**
+ * The start and end saved when a timed entry is edited. Start and end stay on one
+ * organization-local day (DB.md §6.4). Fields left alone keep the stored timestamp,
+ * seconds included, so opening the dialog and saving does not move the entry.
+ */
+export function resolveEntryEdit(
+  fields: EntryEditFields,
+  original: { startedAt: string; endedAt: string },
+  timeZone: string,
+): ResolvedEntry {
+  const originalStart = new Date(original.startedAt);
+  const originalEnd = new Date(original.endedAt);
+  if (Number.isNaN(originalStart.getTime()) || Number.isNaN(originalEnd.getTime())) {
+    return { ok: false, field: "startTime", message: "Enter a valid start time." };
+  }
+
+  const initialStart = localParts(originalStart, timeZone);
+  const initialEnd = localParts(originalEnd, timeZone);
+  const endedAtMidnight = initialEnd.time === "00:00" && initialEnd.date !== initialStart.date;
+  const startUnchanged = fields.workDate === initialStart.date && fields.startTime === initialStart.time;
+  const endUnchanged =
+    fields.workDate === initialStart.date &&
+    (fields.endsAtMidnight
+      ? endedAtMidnight
+      : !endedAtMidnight && initialEnd.date === initialStart.date && fields.endTime === initialEnd.time);
+
+  let startedAt: string;
+  if (startUnchanged) {
+    startedAt = original.startedAt;
+  } else {
+    const start = zonedMoment(fields.workDate, fields.startTime, timeZone);
+    if (!start) return { ok: false, field: "startTime", message: "Enter a valid start time." };
+    startedAt = start.toISOString();
+  }
+
+  let endedAt: string;
+  if (startUnchanged && endUnchanged) {
+    endedAt = original.endedAt;
+  } else if (fields.endsAtMidnight) {
+    const end = zonedMoment(addCalendarDays(fields.workDate, 1), "00:00", timeZone);
+    if (!end) return { ok: false, field: "endTime", message: "Enter a valid end time." };
+    endedAt = end.toISOString();
+  } else {
+    const end = zonedMoment(fields.workDate, fields.endTime, timeZone);
+    if (!end) return { ok: false, field: "endTime", message: "Enter a valid end time." };
+    endedAt = end.toISOString();
+  }
+
+  const startMs = Date.parse(startedAt);
+  const endMs = Date.parse(endedAt);
+  if (!(endMs > startMs)) {
+    return { ok: false, field: "endTime", message: "The end must be after the start." };
+  }
+
+  const startDate = localParts(new Date(startMs), timeZone).date;
+  const endDate = localParts(new Date(endMs - 1), timeZone).date;
+  if (startDate !== fields.workDate || endDate !== fields.workDate) {
+    return { ok: false, field: "endTime", message: "A timed entry has to stay within one day." };
+  }
+
+  const minutes = Math.round((endMs - startMs) / 60_000);
+  if (minutes < 1) return { ok: false, field: "endTime", message: "Enter at least 1 minute." };
+  if (minutes > 1500) return { ok: false, field: "endTime", message: "A timed entry has to stay within one day." };
+  return { ok: true, startedAt, endedAt, minutes };
+}
+
+/** Clock range for a timed entry, in the organization's time zone. An end at the next midnight reads "23:30–midnight". */
+export function formatEntryClock(startedAt: string, endedAt: string, timeZone: string): string {
+  const start = localParts(new Date(startedAt), timeZone);
+  const end = localParts(new Date(endedAt), timeZone);
+  if (end.time === "00:00" && end.date !== start.date) return `${start.time}\u2013midnight`;
+  return `${start.time}\u2013${end.time}`;
+}
+
+/** Fields for the timed-entry dialog, read from the stored timestamps. */
+export function entryEditDefaults(
+  startedAt: string,
+  endedAt: string,
+  timeZone: string,
+): EntryEditFields {
+  const start = localParts(new Date(startedAt), timeZone);
+  const end = localParts(new Date(endedAt), timeZone);
+  const endsAtMidnight = end.time === "00:00" && end.date !== start.date;
+  return {
+    workDate: start.date,
+    startTime: start.time,
+    endTime: endsAtMidnight ? "23:59" : end.time,
+    endsAtMidnight,
+  };
 }
 
 /**

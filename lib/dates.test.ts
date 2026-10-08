@@ -1,13 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
+  addCalendarDays,
   formatAge,
   formatCalendarDate,
   formatDate,
   formatDateTime,
+  formatMonth,
   formatRelative,
   isoDateInZone,
   monthStartInZone,
+  monthStartOf,
+  monthStartsBetween,
   nextMonthStart,
+  previousMonthStart,
 } from "@/lib/dates";
 
 const zone = "Europe/Budapest";
@@ -30,6 +35,15 @@ describe("isoDateInZone", () => {
   it("starts the month in the organization zone", () => {
     expect(monthStartInZone(zone, new Date("2026-09-30T22:30:00.000Z"))).toBe("2026-10-01");
     expect(monthStartInZone(zone, new Date("2026-10-31T12:00:00.000Z"))).toBe("2026-10-01");
+  });
+
+  it("walks calendar months and days without a time zone shift", () => {
+    expect(previousMonthStart("2026-01-01")).toBe("2025-12-01");
+    expect(monthStartOf("2026-10-08")).toBe("2026-10-01");
+    expect(monthStartsBetween("2026-08-01", "2026-10-01")).toEqual(["2026-08-01", "2026-09-01", "2026-10-01"]);
+    expect(formatMonth("2026-10-01")).toBe("October 2026");
+    expect(addCalendarDays("2026-10-31", 1)).toBe("2026-11-01");
+    expect(addCalendarDays("2024-02-28", 1)).toBe("2024-02-29");
   });
 });
 

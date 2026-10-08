@@ -4,7 +4,14 @@
  */
 import { formatMoney, type Money } from "@/lib/money";
 
-export { formatAge, formatCalendarDate, formatDate, formatDateTime, formatRelative } from "@/lib/dates";
+export {
+  formatAge,
+  formatCalendarDate,
+  formatDate,
+  formatDateTime,
+  formatMonth,
+  formatRelative,
+} from "@/lib/dates";
 export { formatDuration, parseDuration, snapMinutes } from "@/lib/duration";
 export { formatAmounts, formatMoney, toCents, type Currency, type Money } from "@/lib/money";
 

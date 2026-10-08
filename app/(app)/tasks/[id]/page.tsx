@@ -10,7 +10,9 @@ import { type CommentView, CommentsSection } from "@/components/tasks/comments-s
 import { SubmitTaskButton, WithdrawButton } from "@/components/proposals/proposal-actions";
 import { DeleteTaskButton } from "@/components/tasks/delete-task-button";
 import { LinksSection } from "@/components/tasks/links-section";
-import { EntryDescriptionButton } from "@/components/time/entry-description-button";
+import { AddTimeDialog } from "@/components/time/add-time-dialog";
+import { EntrySource, OverLimit } from "@/components/time/entry-source";
+import { TimeEntryActions } from "@/components/time/time-entry-actions";
 import { RunningTimerBadge } from "@/components/timer/running-timer-badge";
 import { StartTimerButton } from "@/components/timer/start-timer-button";
 import { buttonVariants } from "@/components/ui/button";
@@ -53,6 +55,21 @@ export default async function TaskPage({ params }: TaskPageProps) {
         key="timer"
         variant="primary"
         task={{ id: task.id, title: task.title, projectName: task.project.name }}
+      />
+    ) : null,
+    actions.trackTime && task.workDateMin && task.workDateMin <= task.today ? (
+      <AddTimeDialog
+        key="add-time"
+        trigger="outline"
+        today={task.today}
+        tasks={[
+          {
+            id: task.id,
+            title: task.title,
+            projectName: task.project.name,
+            dateMin: task.workDateMin,
+          },
+        ]}
       />
     ) : null,
     actions.submit ? <SubmitTaskButton key="submit" projectId={task.project.id} taskId={task.id} /> : null,
@@ -240,7 +257,7 @@ function TimeEntries({ task }: { task: TaskDetail }) {
   if (task.entries.length === 0) {
     return <p className="text-body-sm text-muted-foreground">No time tracked yet.</p>;
   }
-  const correctable = task.entries.some((entry) => entry.canCorrectDescription);
+  const actionable = task.entries.some((entry) => entry.canEdit || entry.canCorrectDescription);
   return (
     <Table>
       <caption className="sr-only">Time entries on this task</caption>
@@ -251,7 +268,7 @@ function TimeEntries({ task }: { task: TaskDetail }) {
           <TableHead>Source</TableHead>
           <TableHead className="text-right">Duration</TableHead>
           <TableHead className="text-right">Over limit</TableHead>
-          {correctable ? (
+          {actionable ? (
             <TableHead>
               <span className="sr-only">Actions</span>
             </TableHead>
@@ -265,29 +282,30 @@ function TimeEntries({ task }: { task: TaskDetail }) {
               {formatCalendarDate(entry.workDate)}
             </TableCell>
             <TableCell data-label="Description" className="md:max-w-80 md:whitespace-normal">
-              {entry.description}
+              <span className="whitespace-pre-line break-words">{entry.description}</span>
             </TableCell>
             <TableCell data-label="Source">
-              {entry.source === "timer" ? "Timed" : "Manual"}
-              {entry.autoStoppedReason ? (
-                <span className="block text-caption text-muted-foreground">Stopped automatically</span>
-              ) : null}
+              <EntrySource
+                source={entry.source}
+                startedAt={entry.startedAt}
+                endedAt={entry.endedAt}
+                timeZone={task.timeZone}
+                autoStoppedReason={entry.autoStoppedReason}
+              />
             </TableCell>
             <TableCell data-label="Duration" className="numeric md:text-right">
               {formatDuration(entry.durationMinutes)}
             </TableCell>
-            <TableCell data-label="Over limit" className="numeric md:text-right">
-              {entry.overLimitMinutes > 0 ? formatDuration(entry.overLimitMinutes) : "\u2014"}
+            <TableCell data-label="Over limit" className="md:text-right">
+              <OverLimit minutes={entry.overLimitMinutes} />
             </TableCell>
-            {correctable ? (
-              <TableCell className="md:text-right">
-                {entry.canCorrectDescription ? (
-                  <EntryDescriptionButton
-                    entryId={entry.id}
-                    description={entry.description}
-                    dateLabel={formatCalendarDate(entry.workDate)}
-                  />
-                ) : null}
+            {actionable ? (
+              <TableCell data-label="Actions" className="md:text-right">
+                <TimeEntryActions
+                  entry={{ ...entry, dateMin: task.workDateMin ?? entry.workDate }}
+                  dateMax={task.today}
+                  timeZone={task.timeZone}
+                />
               </TableCell>
             ) : null}
           </TableRow>

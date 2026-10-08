@@ -48,6 +48,56 @@ export function nextMonthStart(monthStart: string): string {
   return `${nextYear}-${String(nextMonth).padStart(2, "0")}-01`;
 }
 
+/** First day of the month before a `yyyy-MM-01` month start. */
+export function previousMonthStart(monthStart: string): string {
+  const match = /^(\d{4})-(\d{2})-01$/.exec(monthStart);
+  if (!match) throw new Error("A month starts on the first.");
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  if (month < 1 || month > 12) throw new Error("A month starts on the first.");
+  if (month === 1) return `${year - 1}-12-01`;
+  return `${year}-${String(month - 1).padStart(2, "0")}-01`;
+}
+
+/** `yyyy-MM-01` for a calendar date. */
+export function monthStartOf(isoDate: string): string {
+  const match = /^(\d{4})-(\d{2})-\d{2}$/.exec(isoDate);
+  if (!match) throw new Error("That isn't a valid date.");
+  const month = Number(match[2]);
+  if (month < 1 || month > 12) throw new Error("That isn't a valid date.");
+  return `${match[1]}-${match[2]}-01`;
+}
+
+/** Inclusive month starts from `from` through `through`, oldest first. */
+export function monthStartsBetween(from: string, through: string): string[] {
+  if (from > through) return [];
+  const months: string[] = [];
+  let cursor = from;
+  while (cursor <= through) {
+    months.push(cursor);
+    const next = nextMonthStart(cursor);
+    if (next <= cursor || months.length > 240) throw new Error("A month starts on the first.");
+    cursor = next;
+  }
+  return months;
+}
+
+/** "October 2026" for a `yyyy-MM-01` month start. */
+export function formatMonth(monthStart: string): string {
+  const match = /^(\d{4})-(\d{2})-01$/.exec(monthStart);
+  if (!match) throw new Error("A month starts on the first.");
+  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, 1, 12));
+  return format(date, "MMMM yyyy", { in: tz("UTC") });
+}
+
+/** Adds calendar days to a `yyyy-MM-dd` date, with no time zone shift. */
+export function addCalendarDays(isoDate: string, days: number): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate);
+  if (!match || !Number.isInteger(days)) throw new Error("That isn't a valid date.");
+  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]) + days, 12));
+  return format(date, "yyyy-MM-dd", { in: tz("UTC") });
+}
+
 /** "6 Oct 2026, 14:05" */
 export function formatDateTime(value: DateInput, timeZone: string): string {
   return formatInZone(value, timeZone, "d MMM yyyy, HH:mm");
