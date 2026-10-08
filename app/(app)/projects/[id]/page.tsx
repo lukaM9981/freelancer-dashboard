@@ -10,7 +10,8 @@ import { ProjectDialog } from "@/components/projects/project-dialog";
 import { ProjectStatusActions } from "@/components/projects/project-status-actions";
 import { TaskFilters } from "@/components/projects/task-filters";
 import { StatCard } from "@/components/stat-card";
-import { StatusBadge, TASK_STATUSES } from "@/components/status-badge";
+import { StatusBadge, TASK_STATUSES, type TaskStatus } from "@/components/status-badge";
+import { StartTimerButton } from "@/components/timer/start-timer-button";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Table,
@@ -28,6 +29,7 @@ import { canCreateTaskIn } from "@/lib/tasks/queries";
 import { cn } from "@/lib/utils";
 
 const UNASSIGNED = "unassigned";
+const TRACKABLE: ReadonlySet<TaskStatus> = new Set(["approved", "in_progress"]);
 
 const STATUS_LABELS: Record<(typeof TASK_STATUSES)[number], string> = {
   draft: "Draft",
@@ -170,7 +172,11 @@ export default async function ProjectPage({ params, searchParams }: ProjectPageP
             {tasks.length === 0 ? (
               <p className="text-body-sm text-muted-foreground">No tasks match these filters.</p>
             ) : (
-              <TaskTable tasks={tasks} showAssignee={isAdmin} />
+              <TaskTable
+                tasks={tasks}
+                showAssignee={isAdmin}
+                timerProjectName={!isAdmin && project.status === "active" ? project.name : null}
+              />
             )}
           </>
         )}
@@ -191,7 +197,17 @@ export default async function ProjectPage({ params, searchParams }: ProjectPageP
   );
 }
 
-function TaskTable({ tasks, showAssignee }: { tasks: ProjectTask[]; showAssignee: boolean }) {
+function TaskTable({
+  tasks,
+  showAssignee,
+  timerProjectName,
+}: {
+  tasks: ProjectTask[];
+  showAssignee: boolean;
+  /** Set when the viewer can track time here: the freelancer's own tasks in an Active project. */
+  timerProjectName: string | null;
+}) {
+  const showTimer = timerProjectName != null && tasks.some((task) => TRACKABLE.has(task.status));
   return (
     <Table>
       <caption className="sr-only">Tasks in this project</caption>
@@ -202,6 +218,11 @@ function TaskTable({ tasks, showAssignee }: { tasks: ProjectTask[]; showAssignee
           {showAssignee ? <TableHead>Assignee</TableHead> : null}
           <TableHead className="text-right">Counted</TableHead>
           <TableHead className="text-right">Over limit</TableHead>
+          {showTimer ? (
+            <TableHead>
+              <span className="sr-only">Timer</span>
+            </TableHead>
+          ) : null}
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -230,6 +251,16 @@ function TaskTable({ tasks, showAssignee }: { tasks: ProjectTask[]; showAssignee
             <TableCell data-label="Over limit" className="numeric md:text-right">
               {task.overLimitMinutes > 0 ? formatDuration(task.overLimitMinutes) : "—"}
             </TableCell>
+            {showTimer ? (
+              <TableCell className="md:text-right">
+                {TRACKABLE.has(task.status) ? (
+                  <StartTimerButton
+                    variant="icon"
+                    task={{ id: task.id, title: task.title, projectName: timerProjectName }}
+                  />
+                ) : null}
+              </TableCell>
+            ) : null}
           </TableRow>
         ))}
       </TableBody>

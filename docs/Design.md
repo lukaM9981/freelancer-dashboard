@@ -432,6 +432,9 @@ button is the page's primary action.
 
 **Review dialog** (on stop): task and project, start and end time (editable), duration,
 required description, then "Save Time" (primary) and "Discard" (ghost, with a confirm).
+A run that crosses midnight adds date inputs and lists the split per day. After ten hours
+the dialog shows a warning box (`border-yellow-300 bg-yellow-50`, `triangle-alert` in
+`text-yellow-800`) and a required "The end time is correct" checkbox.
 
 **Screen readers**: announce start and stop through a polite live region; the ticking
 clock itself is not announced.

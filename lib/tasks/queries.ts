@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 import type { ExtraHoursStatus, RevisionDecision, TaskStatus } from "@/components/status-badge";
 import type { Viewer } from "@/lib/auth/queries";
+import { nextMonthStart } from "@/lib/dates";
 import { isTaskStatus } from "@/lib/projects/figures";
 import type { ProjectStatus } from "@/lib/projects/schemas";
 import { getOrganizationSettings } from "@/lib/settings/queries";
@@ -47,6 +48,8 @@ export type TaskTimeEntry = {
   description: string;
   source: "timer" | "manual";
   autoStoppedReason: string | null;
+  /** The author may correct the description while the entry's month is open (PRD §6.8). */
+  canCorrectDescription: boolean;
 };
 
 export type TaskComment = {
@@ -82,6 +85,8 @@ export type TaskDetail = {
   countedMinutes: number;
   overLimitMinutes: number;
   timerRunning: boolean;
+  /** When the running timer on this task started. */
+  timerStartedAt: string | null;
   extraHoursPending: boolean;
   revisions: EstimateRevision[];
   extraHours: ExtraHoursRequest[];
@@ -138,7 +143,7 @@ export const getTask = cache(async (taskId: string, viewer: Viewer): Promise<Tas
   }
   if (!task.data || !isTaskStatus(task.data.status)) return null;
 
-  const [settings, progress, revisions, extraHours, entries, timers, comments, links, events] = await Promise.all([
+  const [settings, progress, revisions, extraHours, entries, timers, comments, links, events, closures] = await Promise.all([
     getOrganizationSettings(),
     supabase.from("task_progress").select("ceiling_minutes").eq("task_id", taskId).maybeSingle(),
     supabase
@@ -158,12 +163,12 @@ export const getTask = cache(async (taskId: string, viewer: Viewer): Promise<Tas
     supabase
       .from("time_entries")
       .select(
-        "id, work_date, duration_minutes, counted_minutes, over_limit_minutes, description, source, auto_stopped_reason",
+        "id, user_id, work_date, duration_minutes, counted_minutes, over_limit_minutes, description, source, auto_stopped_reason",
       )
       .eq("task_id", taskId)
       .order("work_date", { ascending: false })
       .order("created_at", { ascending: false }),
-    supabase.from("timers").select("id").eq("task_id", taskId).is("stopped_at", null),
+    supabase.from("timers").select("id, started_at").eq("task_id", taskId).is("stopped_at", null),
     supabase
       .from("task_comments")
       .select("id, author_id, kind, body, created_at, edited_at, author:profiles!task_comments_author_id_fkey(full_name)")
@@ -176,8 +181,9 @@ export const getTask = cache(async (taskId: string, viewer: Viewer): Promise<Tas
       .eq("task_id", taskId)
       .order("occurred_at", { ascending: false })
       .order("id", { ascending: false }),
+    supabase.from("month_closures").select("month").order("month", { ascending: false }).limit(1),
   ]);
-  for (const result of [progress, revisions, extraHours, entries, timers, comments, links, events]) {
+  for (const result of [progress, revisions, extraHours, entries, timers, comments, links, events, closures]) {
     if (result.error) throw new Error(`Task lookup failed: ${result.error.message}`);
   }
 
@@ -216,6 +222,7 @@ export const getTask = cache(async (taskId: string, viewer: Viewer): Promise<Tas
     decisionReason: row.decision_reason,
   }));
 
+  const latestClosedMonth = closures.data?.[0]?.month ?? null;
   const estimate = estimateOf(task.data.estimate_min_minutes, task.data.estimate_max_minutes, task.data.estimate_note);
   const permissionTask: PermissionTask = {
     status: task.data.status,
@@ -252,6 +259,7 @@ export const getTask = cache(async (taskId: string, viewer: Viewer): Promise<Tas
     countedMinutes: task.data.counted_minutes,
     overLimitMinutes: task.data.over_limit_minutes,
     timerRunning: permissionTask.timerRunning,
+    timerStartedAt: timers.data?.[0]?.started_at ?? null,
     extraHoursPending: permissionTask.extraHoursPending,
     revisions: revisionRows,
     extraHours: extraHourRows,
@@ -264,6 +272,11 @@ export const getTask = cache(async (taskId: string, viewer: Viewer): Promise<Tas
       description: row.description,
       source: row.source === "timer" ? "timer" : "manual",
       autoStoppedReason: row.auto_stopped_reason,
+      // Every month up to the most recently closed one is read-only.
+      canCorrectDescription:
+        row.user_id === viewer.id &&
+        permissionTask.projectStatus !== "archived" &&
+        (latestClosedMonth == null || row.work_date >= nextMonthStart(latestClosedMonth)),
     })),
     comments: (comments.data ?? []).map((row) => ({
       id: row.id,

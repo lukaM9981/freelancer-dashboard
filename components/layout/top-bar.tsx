@@ -1,11 +1,12 @@
 "use client";
 
+import { TimerBar } from "@/components/timer/timer-bar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 /**
- * Menu button below `lg`. The middle and the right are empty on purpose:
- * the timer bar (phase 9) and the notification bell (phase 14) land there.
+ * Menu button below `lg`, then the timer bar. The right is empty on purpose: the
+ * notification bell (phase 14) lands there.
  */
 export function TopBar() {
   return (
@@ -14,7 +15,9 @@ export function TopBar() {
         <TooltipTrigger render={<SidebarTrigger className="lg:hidden" aria-label="Open menu" />} />
         <TooltipContent>Open menu</TooltipContent>
       </Tooltip>
-      <div className="min-w-0 flex-1" data-slot="timer-bar" />
+      <div className="flex min-w-0 flex-1 justify-center" data-slot="timer-bar">
+        <TimerBar />
+      </div>
       <div className="size-10 shrink-0" data-slot="notification-bell" aria-hidden="true" />
     </header>
   );

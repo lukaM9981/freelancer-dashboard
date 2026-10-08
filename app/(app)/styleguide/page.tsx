@@ -88,8 +88,8 @@ export default async function StyleguidePage() {
           </Tooltip>
         </div>
         <p className="text-caption text-muted-foreground">
-          Appearance only. The running timer arrives in a later phase, in the empty slot in the
-          top bar.
+          Appearance only. The live bar shows in the top bar while a timer runs, and above the
+          bottom edge on phones.
         </p>
       </section>
 

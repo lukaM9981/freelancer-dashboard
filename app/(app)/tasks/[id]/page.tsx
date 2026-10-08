@@ -10,6 +10,9 @@ import { type CommentView, CommentsSection } from "@/components/tasks/comments-s
 import { SubmitTaskButton, WithdrawButton } from "@/components/proposals/proposal-actions";
 import { DeleteTaskButton } from "@/components/tasks/delete-task-button";
 import { LinksSection } from "@/components/tasks/links-section";
+import { EntryDescriptionButton } from "@/components/time/entry-description-button";
+import { RunningTimerBadge } from "@/components/timer/running-timer-badge";
+import { StartTimerButton } from "@/components/timer/start-timer-button";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Table,
@@ -45,6 +48,13 @@ export default async function TaskPage({ params }: TaskPageProps) {
   const shownEstimate = task.approvedEstimate ?? task.estimate;
   const pendingRevision = task.revisions.find((revision) => revision.decision === "pending");
   const headerActions = [
+    actions.trackTime ? (
+      <StartTimerButton
+        key="timer"
+        variant="primary"
+        task={{ id: task.id, title: task.title, projectName: task.project.name }}
+      />
+    ) : null,
     actions.submit ? <SubmitTaskButton key="submit" projectId={task.project.id} taskId={task.id} /> : null,
     actions.decideEstimate && pendingRevision ? (
       <Link key="review" href={`/approvals/${pendingRevision.proposalId}`} className={buttonVariants()}>
@@ -104,6 +114,13 @@ export default async function TaskPage({ params }: TaskPageProps) {
             <span className="text-muted-foreground">
               {task.assigneeId ? `Assigned to ${task.assigneeName ?? "Unknown person"}` : "Unassigned"}
             </span>
+          ) : null}
+          {isAdmin && task.timerStartedAt ? (
+            <RunningTimerBadge
+              startedAt={task.timerStartedAt}
+              serverNow={new Date().toISOString()}
+              personName={task.assigneeName}
+            />
           ) : null}
         </div>
         <StatusHint task={task} viewer={viewer} />
@@ -223,6 +240,7 @@ function TimeEntries({ task }: { task: TaskDetail }) {
   if (task.entries.length === 0) {
     return <p className="text-body-sm text-muted-foreground">No time tracked yet.</p>;
   }
+  const correctable = task.entries.some((entry) => entry.canCorrectDescription);
   return (
     <Table>
       <caption className="sr-only">Time entries on this task</caption>
@@ -233,6 +251,11 @@ function TimeEntries({ task }: { task: TaskDetail }) {
           <TableHead>Source</TableHead>
           <TableHead className="text-right">Duration</TableHead>
           <TableHead className="text-right">Over limit</TableHead>
+          {correctable ? (
+            <TableHead>
+              <span className="sr-only">Actions</span>
+            </TableHead>
+          ) : null}
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -256,6 +279,17 @@ function TimeEntries({ task }: { task: TaskDetail }) {
             <TableCell data-label="Over limit" className="numeric md:text-right">
               {entry.overLimitMinutes > 0 ? formatDuration(entry.overLimitMinutes) : "\u2014"}
             </TableCell>
+            {correctable ? (
+              <TableCell className="md:text-right">
+                {entry.canCorrectDescription ? (
+                  <EntryDescriptionButton
+                    entryId={entry.id}
+                    description={entry.description}
+                    dateLabel={formatCalendarDate(entry.workDate)}
+                  />
+                ) : null}
+              </TableCell>
+            ) : null}
           </TableRow>
         ))}
       </TableBody>

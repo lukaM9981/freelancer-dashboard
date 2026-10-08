@@ -308,20 +308,30 @@ updated with them; unit tests cover them.
 ### 7.3 Timer
 
 - **Source of truth** is the `timers` row; the browser never keeps its own start time.
-  The page passes `startedAt` and the server's `now` to `TimerBar`, which computes the
-  clock offset once and ticks every second. The clock uses `font-mono numeric` so digits
-  don't shift.
+  The app layout loads the viewer's running timer (`lib/time/queries.ts`) and passes it,
+  with the server's `now`, to `TimerProvider` (`components/timer/`), which computes the
+  clock offset once per server render and ticks every second. `TimerBar`, the start
+  buttons, and the review dialog read it from there. The clock uses `font-mono numeric` so
+  digits don't shift.
 - **Every device** subscribes to its own timer rows (section 8), so starting on the phone
   shows the bar on the laptop within a second, and an automatic stop (hold, cancel,
   deactivation) removes the bar everywhere and shows a toast with the reason.
 - **Starting while a timer runs**: `start_timer` refuses with `timer_already_running`, so the
   UI first opens the review dialog for the running timer, then starts the new one.
 - **Review dialog** (on stop): start and end as time inputs in the organization's time
-  zone, prefilled with the real run; the description is required. Save calls
+  zone, prefilled with the real run, plus date inputs and the split per day when the run
+  crosses midnight (`lib/time/run.ts` mirrors `app.save_timer`); the description is
+  required. A field left alone keeps the exact real moment: an unchanged start is sent as
+the database's own value (microseconds included), and the end is rounded down to the
+second. Save calls
   `stop_timer(started_at, ended_at, description)`; Discard calls `discard_timer()` after a
   confirmation. The database refuses an extended run (`timer_range_invalid`); the dialog
-  explains that earlier work is added as a manual entry.
-- **Ten-hour warning** is computed on the client from `startedAt` (Design.md §5.4).
+  explains that earlier work is added as a manual entry. `daily_limit_exceeded` is shown
+  on the end time and the dialog stays open.
+- **Ten-hour warning** is computed on the client from `startedAt` (Design.md §5.4). Past
+  ten hours the review also needs a "The end time is correct" checkbox.
+- **Correcting a description** (for example after an automatic stop) calls
+  `update_time_entry` with only the description, from the task detail's entry table.
 - **Marking a task Done** with its timer running opens the review dialog first
   (`timer_running_on_task`).
 

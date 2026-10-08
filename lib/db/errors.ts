@@ -39,6 +39,18 @@ export const ERROR_MESSAGES = {
   no_decisions: "Choose a decision first.",
   invalid_decision: "Choose approve, request changes, or reject.",
   comment_required: "Write a comment. It's required when rejecting or requesting changes.",
+  project_not_active: "The project is on hold or archived, so no time can be tracked on it.",
+  timer_already_running: "A timer is already running. Stop it before starting another one.",
+  timer_not_running: "This timer has already stopped.",
+  timer_range_invalid:
+    "A run can be shortened but not extended. Add work done before the timer started as a manual entry.",
+  timer_running_on_task: "The timer is still running on this task. Stop it first.",
+  daily_limit_exceeded: "This would put more than 24 hours on one day. Shorten the run.",
+  work_date_in_future: "That date is in the future.",
+  work_date_before_approval: "That date is before the task was approved.",
+  month_closed: "That month is closed, so its time can't change.",
+  entry_not_found: "This time entry doesn't exist, or you can't change it.",
+  entry_spans_midnight: "A timed entry has to stay within one day.",
 } as const satisfies Record<string, string>;
 
 export type ErrorKey = keyof typeof ERROR_MESSAGES;
