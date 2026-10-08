@@ -29,7 +29,8 @@ export const TASK_STATUSES = [
 ] as const;
 
 export type TaskStatus = (typeof TASK_STATUSES)[number];
-export type ExtraHoursStatus = "pending" | "approved" | "rejected";
+export type ExtraHoursStatus = "pending" | "approved" | "rejected" | "cancelled";
+export type RevisionDecision = "pending" | "approved" | "rejected" | "changes_requested" | "withdrawn";
 export type MonthStatus = "open" | "closed";
 
 type Look = { label: string; icon: LucideIcon; className: string };
@@ -93,6 +94,16 @@ const extraHoursLooks: Record<ExtraHoursStatus, Look> = {
   pending: { ...taskLooks.pending_approval, label: "Pending" },
   approved: taskLooks.approved,
   rejected: taskLooks.rejected,
+  cancelled: taskLooks.cancelled,
+};
+
+/** Estimate revisions are proposal items, which look like tasks (Design.md §5.1). */
+const revisionLooks: Record<RevisionDecision, Look> = {
+  pending: { ...taskLooks.pending_approval, label: "Pending" },
+  approved: taskLooks.approved,
+  rejected: taskLooks.rejected,
+  changes_requested: taskLooks.changes_requested,
+  withdrawn: { ...taskLooks.cancelled, label: "Withdrawn" },
 };
 
 const monthLooks: Record<MonthStatus, Look> = {
@@ -111,6 +122,7 @@ const monthLooks: Record<MonthStatus, Look> = {
 type StatusBadgeProps = { className?: string } & (
   | { kind?: "task"; status: TaskStatus }
   | { kind: "extra-hours"; status: ExtraHoursStatus }
+  | { kind: "revision"; status: RevisionDecision }
   | { kind: "month"; status: MonthStatus }
 );
 
@@ -118,9 +130,11 @@ export function StatusBadge({ className, ...props }: StatusBadgeProps) {
   const look =
     props.kind === "extra-hours"
       ? extraHoursLooks[props.status]
-      : props.kind === "month"
-        ? monthLooks[props.status]
-        : taskLooks[props.status];
+      : props.kind === "revision"
+        ? revisionLooks[props.status]
+        : props.kind === "month"
+          ? monthLooks[props.status]
+          : taskLooks[props.status];
   const Icon = look.icon;
 
   return (

@@ -20,6 +20,16 @@ export const ERROR_MESSAGES = {
     "This project still has open tasks. Finish, cancel, or delete them before archiving.",
   member_has_open_tasks:
     "This person still has open tasks in this project. Reassign or cancel them first.",
+  task_not_found: "This task doesn't exist, or you can't see it.",
+  link_not_found: "This link was already removed.",
+  not_project_member: "You're not a member of this project. Ask an Admin to add you.",
+  assignee_not_member: "This person isn't a member of the project. Add them to the project first.",
+  not_task_assignee: "Only the person assigned to this task can do this.",
+  invalid_task_status: "This task's status changed, so this is no longer possible. Reload the page.",
+  invalid_status_transition: "This task's status changed, so this is no longer possible. Reload the page.",
+  task_was_submitted: "This task has been submitted, so it can't be deleted. An Admin can cancel it instead.",
+  task_has_time: "Time has been tracked on this task, so it can't be reassigned. Cancel it instead.",
+  self_approval_not_allowed: "You can't decide on your own task. Another Admin has to do it.",
 } as const satisfies Record<string, string>;
 
 export type ErrorKey = keyof typeof ERROR_MESSAGES;

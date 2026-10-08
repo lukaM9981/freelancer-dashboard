@@ -15,6 +15,11 @@ type DurationInputProps = {
   step?: number;
   helperText?: string;
   disabled?: boolean;
+  /** Minutes after snapping: null when empty, NaN when the text can't be read. */
+  onMinutesChange?: (minutes: number | null) => void;
+  onBlur?: () => void;
+  /** A validation message from the form, shown instead of the helper text. */
+  error?: string;
 };
 
 export function DurationInput({
@@ -25,6 +30,9 @@ export function DurationInput({
   step,
   helperText,
   disabled,
+  onMinutesChange,
+  onBlur,
+  error,
 }: DurationInputProps) {
   const generatedId = useId();
   const inputId = id ?? generatedId;
@@ -33,11 +41,9 @@ export function DurationInput({
   const helperId = `${inputId}-helper`;
   const [text, setText] = useState(defaultValue);
 
-  const trimmed = text.trim();
-  const parsed = trimmed === "" ? null : parseDuration(trimmed);
-  const invalid = trimmed !== "" && parsed == null;
-  const minutes = parsed == null ? null : step == null ? parsed : snapMinutes(parsed, step);
+  const { invalid, minutes } = readDuration(text, step);
   const helper = helperText ?? (step != null ? "In 15-minute steps" : undefined);
+  const message = invalid ? "Enter a duration like 1h 30m." : error;
 
   return (
     <div className="group flex flex-col gap-1.5">
@@ -53,15 +59,23 @@ export function DurationInput({
         disabled={disabled}
         inputMode="decimal"
         autoComplete="off"
-        aria-invalid={invalid || undefined}
-        aria-describedby={invalid ? errorId : minutes != null ? captionId : helper ? helperId : undefined}
-        onChange={(event) => setText(event.target.value)}
+        aria-invalid={message ? true : undefined}
+        aria-describedby={message ? errorId : minutes != null ? captionId : helper ? helperId : undefined}
+        onBlur={onBlur}
+        onChange={(event) => {
+          const next = event.target.value;
+          setText(next);
+          if (onMinutesChange) {
+            const read = readDuration(next, step);
+            onMinutesChange(read.invalid ? Number.NaN : read.minutes);
+          }
+        }}
       />
       {name ? <input type="hidden" name={name} value={minutes ?? ""} /> : null}
-      {invalid ? (
+      {message ? (
         <p id={errorId} className="flex items-center gap-1 text-caption text-destructive">
           <TriangleAlert className="size-3.5 shrink-0" aria-hidden="true" />
-          Enter a duration like 1h 30m.
+          {message}
         </p>
       ) : (
         <>
@@ -79,4 +93,12 @@ export function DurationInput({
       )}
     </div>
   );
+}
+
+function readDuration(text: string, step: number | undefined): { invalid: boolean; minutes: number | null } {
+  const trimmed = text.trim();
+  const parsed = trimmed === "" ? null : parseDuration(trimmed);
+  if (trimmed !== "" && parsed == null) return { invalid: true, minutes: null };
+  if (parsed == null) return { invalid: false, minutes: null };
+  return { invalid: false, minutes: step == null ? parsed : snapMinutes(parsed, step) };
 }

@@ -24,6 +24,7 @@ import { getViewer, requireViewer } from "@/lib/auth/queries";
 import { formatDuration } from "@/lib/format";
 import { isTaskStatus } from "@/lib/projects/figures";
 import { getProject, type ProjectTask } from "@/lib/projects/queries";
+import { canCreateTaskIn } from "@/lib/tasks/queries";
 import { cn } from "@/lib/utils";
 
 const UNASSIGNED = "unassigned";
@@ -61,6 +62,12 @@ export default async function ProjectPage({ params, searchParams }: ProjectPageP
 
   const isAdmin = viewer.role === "admin";
   const archived = project.status === "archived";
+  const canCreateTask = !archived && (await canCreateTaskIn(project.id, viewer));
+  const newTaskButton = canCreateTask ? (
+    <Link href={`/tasks/new?project=${project.id}`} className={buttonVariants()}>
+      New Task
+    </Link>
+  ) : null;
 
   const assigneeOptions = isAdmin ? assigneeOptionsFor(project.tasks) : null;
   const statusFilter = single(query.status);
@@ -89,6 +96,7 @@ export default async function ProjectPage({ params, searchParams }: ProjectPageP
           action={
             isAdmin ? (
               <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap lg:justify-end">
+                {newTaskButton}
                 {archived ? null : (
                   <ProjectDialog
                     mode="edit"
@@ -99,7 +107,9 @@ export default async function ProjectPage({ params, searchParams }: ProjectPageP
                 )}
                 <ProjectStatusActions projectId={project.id} status={project.status} />
               </div>
-            ) : undefined
+            ) : (
+              (newTaskButton ?? undefined)
+            )
           }
         />
       </div>
@@ -185,7 +195,12 @@ function TaskTable({ tasks, showAssignee }: { tasks: ProjectTask[]; showAssignee
         {tasks.map((task) => (
           <TableRow key={task.id}>
             <TableCell data-label="Task" className="font-medium md:max-w-96 md:whitespace-normal">
-              {task.title}
+              <Link
+                href={`/tasks/${task.id}`}
+                className="rounded-sm text-link underline-offset-4 hover:underline focus-ring"
+              >
+                {task.title}
+              </Link>
             </TableCell>
             <TableCell data-label="Status">
               <StatusBadge status={task.status} />
