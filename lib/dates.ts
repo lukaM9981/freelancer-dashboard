@@ -31,6 +31,11 @@ export function isoDateInZone(timeZone: string, now: Date = new Date()): string 
   return format(now, "yyyy-MM-dd", { in: tz(timeZone) });
 }
 
+/** First day of the current month in a named zone, `yyyy-MM-01`. */
+export function monthStartInZone(timeZone: string, now: Date = new Date()): string {
+  return format(now, "yyyy-MM-01", { in: tz(timeZone) });
+}
+
 /** First day of the month after a `yyyy-MM-01` month start. */
 export function nextMonthStart(monthStart: string): string {
   const match = /^(\d{4})-(\d{2})-01$/.exec(monthStart);

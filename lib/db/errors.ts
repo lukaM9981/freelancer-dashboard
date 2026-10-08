@@ -14,6 +14,12 @@ export const ERROR_MESSAGES = {
   rate_not_deletable: "Only a rate that hasn't started yet can be deleted.",
   rate_not_found: "This rate doesn't exist, or you can't see it.",
   invalid_time_zone: "Choose a time zone from the list.",
+  project_not_found: "This project doesn't exist, or you can't see it.",
+  project_archived: "This project is archived, so it can't be changed. Restore it first.",
+  project_has_open_tasks:
+    "This project still has open tasks. Finish, cancel, or delete them before archiving.",
+  member_has_open_tasks:
+    "This person still has open tasks in this project. Reassign or cancel them first.",
 } as const satisfies Record<string, string>;
 
 export type ErrorKey = keyof typeof ERROR_MESSAGES;

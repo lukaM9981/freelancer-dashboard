@@ -5,7 +5,8 @@ import { ArrowLeftIcon } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { PersonStatusBadge, projectStatusLabel, roleLabel } from "@/components/people/labels";
+import { PersonStatusBadge, roleLabel } from "@/components/people/labels";
+import { projectStatusLabel } from "@/components/projects/labels";
 import { AccessActions, RoleForm } from "@/components/people/person-controls";
 import { RateSection } from "@/components/people/rate-section";
 import { requireAdmin } from "@/lib/auth/queries";
@@ -67,7 +68,12 @@ export default async function PersonPage({ params }: PersonPageProps) {
           <ul className="divide-y divide-border rounded-lg border border-border">
             {person.memberships.map((membership) => (
               <li key={membership.projectId} className="flex items-baseline justify-between gap-4 px-4 py-3">
-                <span className="text-body-sm font-medium">{membership.projectName}</span>
+                <Link
+                  href={`/projects/${membership.projectId}`}
+                  className="rounded-sm text-body-sm font-medium text-link underline-offset-4 hover:underline focus-ring"
+                >
+                  {membership.projectName}
+                </Link>
                 <span className="text-caption text-muted-foreground">
                   {projectStatusLabel(membership.projectStatus)}
                 </span>

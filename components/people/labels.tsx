@@ -31,9 +31,3 @@ export function PersonStatusBadge({ status }: { status: PersonStatus }) {
 export function roleLabel(role: "admin" | "freelancer") {
   return role === "admin" ? "Admin" : "Freelancer";
 }
-
-export function projectStatusLabel(status: string) {
-  if (status === "on_hold") return "On hold";
-  if (status === "archived") return "Archived";
-  return "Active";
-}

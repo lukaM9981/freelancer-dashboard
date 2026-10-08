@@ -5,6 +5,7 @@ import {
   formatDateTime,
   formatRelative,
   isoDateInZone,
+  monthStartInZone,
   nextMonthStart,
 } from "@/lib/dates";
 
@@ -23,6 +24,11 @@ describe("isoDateInZone", () => {
     expect(nextMonthStart("2026-09-01")).toBe("2026-10-01");
     expect(nextMonthStart("2026-12-01")).toBe("2027-01-01");
     expect(formatCalendarDate("2026-10-06")).toBe("6 Oct 2026");
+  });
+
+  it("starts the month in the organization zone", () => {
+    expect(monthStartInZone(zone, new Date("2026-09-30T22:30:00.000Z"))).toBe("2026-10-01");
+    expect(monthStartInZone(zone, new Date("2026-10-31T12:00:00.000Z"))).toBe("2026-10-01");
   });
 });
 
