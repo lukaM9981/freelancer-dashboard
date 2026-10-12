@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeftIcon } from "lucide-react";
-import { HoursMeter } from "@/components/hours-meter";
 import { PageHeader } from "@/components/layout/page-header";
 import { StatCard } from "@/components/stat-card";
 import { StatusBadge } from "@/components/status-badge";
 import { type CommentView, CommentsSection } from "@/components/tasks/comments-section";
 import { SubmitTaskButton, WithdrawButton } from "@/components/proposals/proposal-actions";
 import { DeleteTaskButton } from "@/components/tasks/delete-task-button";
+import { ExtraHoursCallout, TaskActions, TaskHeaderButtons, TaskHoursMeter } from "@/components/tasks/task-actions";
 import { LinksSection } from "@/components/tasks/links-section";
 import { AddTimeDialog } from "@/components/time/add-time-dialog";
 import { EntrySource, OverLimit } from "@/components/time/entry-source";
@@ -27,7 +27,7 @@ import {
 import { type Viewer, getViewer, requireViewer } from "@/lib/auth/queries";
 import { formatCalendarDate, formatDateTime, formatDuration, formatEstimateRange } from "@/lib/format";
 import { canChangeComment } from "@/lib/tasks/permissions";
-import { type TaskDetail, getTask } from "@/lib/tasks/queries";
+import { type TaskDetail, getTask, listAssigneeOptions } from "@/lib/tasks/queries";
 import { cn } from "@/lib/utils";
 
 type TaskPageProps = { params: Promise<{ id: string }> };
@@ -47,6 +47,17 @@ export default async function TaskPage({ params }: TaskPageProps) {
 
   const isAdmin = viewer.role === "admin";
   const { actions } = task;
+  const members = actions.reassign && !actions.assign ? await listAssigneeOptions(task.project.id) : [];
+  const pendingRequest = task.extraHours.find((request) => request.status === "pending") ?? null;
+  const hasLifecycle =
+    actions.accept ||
+    actions.markDone ||
+    actions.requestExtraHours ||
+    actions.return ||
+    actions.hold ||
+    actions.resume ||
+    (actions.reassign && !actions.assign) ||
+    actions.cancel;
   const shownEstimate = task.approvedEstimate ?? task.estimate;
   const pendingRevision = task.revisions.find((revision) => revision.decision === "pending");
   const headerActions = [
@@ -104,6 +115,16 @@ export default async function TaskPage({ params }: TaskPageProps) {
   }));
 
   return (
+    <TaskActions
+      taskId={task.id}
+      title={task.title}
+      status={task.status}
+      timerOnTask={task.timerRunning}
+      pendingRequest={pendingRequest}
+      members={members}
+      assigneeId={task.assigneeId}
+      actions={actions}
+    >
     <div className="space-y-8">
       <div className="space-y-4">
         <Link
@@ -117,8 +138,12 @@ export default async function TaskPage({ params }: TaskPageProps) {
           eyebrow={task.project.name}
           title={task.title}
           action={
-            headerActions.length > 0 ? (
-              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap lg:justify-end">{headerActions}</div>
+            headerActions.length > 0 || hasLifecycle ? (
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap lg:justify-end">
+                <TaskHeaderButtons slot="lead" />
+                {headerActions}
+                <TaskHeaderButtons slot="rest" />
+              </div>
             ) : undefined
           }
         />
@@ -143,6 +168,8 @@ export default async function TaskPage({ params }: TaskPageProps) {
         <StatusHint task={task} viewer={viewer} />
       </div>
 
+      <ExtraHoursCallout />
+
       <section className="space-y-4">
         <h2 className="sr-only">Estimate and time</h2>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -158,7 +185,7 @@ export default async function TaskPage({ params }: TaskPageProps) {
           <StatCard label="Counted time" value={formatDuration(task.countedMinutes)} />
         </div>
         {task.limitMinutes != null && task.ceilingMinutes != null ? (
-          <HoursMeter
+          <TaskHoursMeter
             countedMinutes={task.countedMinutes + task.overLimitMinutes}
             limitMinutes={task.limitMinutes}
             ceilingMinutes={task.ceilingMinutes}
@@ -225,6 +252,7 @@ export default async function TaskPage({ params }: TaskPageProps) {
         </div>
       </div>
     </div>
+    </TaskActions>
   );
 }
 
@@ -248,6 +276,14 @@ function StatusHint({ task, viewer }: { task: TaskDetail; viewer: Viewer }) {
     hint = "On hold: no time can be tracked until an Admin resumes it.";
   } else if (task.project.status === "on_hold" && (task.status === "approved" || task.status === "in_progress")) {
     hint = "The project is on hold, so no time can be tracked on this task.";
+  } else if (task.status === "done" && isAssignee && !task.extraHoursPending) {
+    hint = "Waiting for an Admin to accept this work.";
+  } else if (task.status === "done" && !task.extraHoursPending) {
+    hint = "Accept the work, or return it with a comment.";
+  } else if (task.status === "accepted") {
+    hint = "Accepted. No more time can be tracked, and the title and description stay as they are.";
+  } else if (task.status === "cancelled") {
+    hint = "Cancelled. Time already counted stays payable.";
   }
 
   return hint ? <p className="max-w-2xl text-body-sm">{hint}</p> : null;

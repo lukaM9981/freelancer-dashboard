@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { CircleAlert, TriangleAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -9,6 +10,10 @@ type HoursMeterProps = {
   ceilingMinutes: number;
   /** Where "Request Extra Hours" goes once time is past the ceiling. */
   requestHref?: string;
+  /** Opens the request in place. Used instead of `requestHref` on the task. */
+  requestAction?: ReactNode;
+  /** Past the ceiling, when a new request is not offered. */
+  overLimitNote?: string;
   className?: string;
 };
 
@@ -19,6 +24,8 @@ export function HoursMeter({
   limitMinutes,
   ceilingMinutes,
   requestHref,
+  requestAction,
+  overLimitNote,
   className,
 }: HoursMeterProps) {
   const limit = Math.max(0, limitMinutes);
@@ -67,19 +74,24 @@ export function HoursMeter({
         ) : null}
         {state === "over" ? <CircleAlert className="size-3.5 shrink-0" aria-hidden="true" /> : null}
         <span className="numeric">{text}</span>
-        {state === "over" ? (
+        {state === "over" && (requestAction || requestHref) ? (
           <>
             <span aria-hidden="true">—</span>
-            {requestHref ? (
-              <Link
-                href={requestHref}
-                className="rounded-sm font-medium text-link underline-offset-4 hover:underline focus-ring"
-              >
-                Request Extra Hours
-              </Link>
-            ) : (
-              <span className="font-medium">Request Extra Hours</span>
-            )}
+            {requestAction ??
+              (requestHref ? (
+                <Link
+                  href={requestHref}
+                  className="rounded-sm font-medium text-link underline-offset-4 hover:underline focus-ring"
+                >
+                  Request Extra Hours
+                </Link>
+              ) : null)}
+          </>
+        ) : null}
+        {state === "over" && !requestAction && !requestHref && overLimitNote ? (
+          <>
+            <span aria-hidden="true">·</span>
+            <span>{overLimitNote}</span>
           </>
         ) : null}
       </p>

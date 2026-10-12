@@ -352,14 +352,18 @@ and `HoursMeter` (Design.md §5.2) draws it. Prompts to request extra hours appe
 
 ### 7.6 Months and reports
 
-- **Months screen** lists every month from the first month with time up to the last
-  completed month, with its status from `month_closures`. Before offering "Close Month" it
-  runs the same blocking checks as the database (earlier open month, running timers,
-  pending extra-hours requests on tasks with over-limit time, missing rates) and lists
-  what blocks it; the database re-checks on close.
+- **Months screen** lists every month from the first month with time through the
+  organization's current month (PRD §6.10), including months in between that have no time.
+  Those need no closing. The current month is open, and Close stays unavailable until the
+  month has ended. Status comes from `month_closures`. Before offering "Close Month" it
+  runs the same blocking checks as the database (month not ended, earlier open month,
+  running timers, pending extra-hours requests on tasks with over-limit time, missing
+  rates) and lists what blocks it; the database re-checks on close. Warnings for Done tasks
+  still waiting and for unpaid over-limit time are shown in the confirm dialog.
 - **Reports** read `report_lines` for a month: one table per freelancer with rows per task
   (and per rate), over-limit time shown as unpaid, totals per currency, and a "Not final"
-  badge while `is_final` is false.
+  badge while the month is open. An Admin can show everyone or one freelancer; the CSV
+  export uses the same choice (`?user=`).
 
 ### 7.7 Durations, money, and time zones in TypeScript
 

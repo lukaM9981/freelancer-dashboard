@@ -33,13 +33,23 @@ type TimerReviewDialogProps = {
   stoppedAt: number;
   /** The task to start once this run is saved or discarded. */
   then: TimerTask | null;
+  /** Shown after the task name when stopping continues into another step. */
+  nextStep: string | null;
   timeZone: string;
   onCancel: () => void;
   onFinished: (announcement: string) => void;
 };
 
 /** The review shown when a timer stops (PRD §5.5, §6.8; Design.md §5.4). */
-export function TimerReviewDialog({ timer, stoppedAt, then, timeZone, onCancel, onFinished }: TimerReviewDialogProps) {
+export function TimerReviewDialog({
+  timer,
+  stoppedAt,
+  then,
+  nextStep,
+  timeZone,
+  onCancel,
+  onFinished,
+}: TimerReviewDialogProps) {
   const [confirmingDiscard, setConfirmingDiscard] = useState(false);
   const [discarding, setDiscarding] = useState(false);
   const run = useMemo(
@@ -85,7 +95,7 @@ export function TimerReviewDialog({ timer, stoppedAt, then, timeZone, onCancel, 
     if (!result.ok) {
       if (result.code === "timer_not_running") {
         toast.info(result.error);
-        onCancel();
+        onFinished("Timer already stopped.");
         return;
       }
       applyFieldErrors(form.setError, result.fieldErrors);
@@ -104,8 +114,12 @@ export function TimerReviewDialog({ timer, stoppedAt, then, timeZone, onCancel, 
     const result = await discardTimer();
     setDiscarding(false);
     if (!result.ok) {
+      if (result.code === "timer_not_running") {
+        toast.info(result.error);
+        onFinished("Timer already stopped.");
+        return;
+      }
       toast.error(result.error);
-      if (result.code === "timer_not_running") onCancel();
       return;
     }
     toast.success("Timer discarded. Nothing was saved.");
@@ -144,6 +158,7 @@ export function TimerReviewDialog({ timer, stoppedAt, then, timeZone, onCancel, 
                     <span className="font-medium text-foreground">{then.title}</span>.
                   </>
                 ) : null}
+                {nextStep ? <>. {nextStep}</> : null}
               </DialogDescription>
             </DialogHeader>
 

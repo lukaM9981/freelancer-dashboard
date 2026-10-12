@@ -4,8 +4,8 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
-import { requireViewer } from "@/lib/auth/queries";
-import { errorMessage } from "@/lib/db/errors";
+import { requireAdmin, requireViewer } from "@/lib/auth/queries";
+import { errorMessage, isErrorKey } from "@/lib/db/errors";
 import { type ActionResult, fail, invalidInput, ok } from "@/lib/db/result";
 import {
   type AddCommentInput,
@@ -22,6 +22,16 @@ import {
   deleteCommentSchema,
   editCommentSchema,
   removeLinkSchema,
+  type DecideExtraHoursInput,
+  type ReassignTaskInput,
+  type RequestExtraHoursInput,
+  type ReturnTaskInput,
+  type TaskCommentInput,
+  decideExtraHoursSchema,
+  reassignTaskSchema,
+  requestExtraHoursSchema,
+  returnTaskSchema,
+  taskCommentSchema,
   taskIdSchema,
   updateTaskSchema,
 } from "@/lib/tasks/schemas";
@@ -216,6 +226,156 @@ export async function removeTaskLink(input: RemoveLinkInput): Promise<ActionResu
 
   revalidatePath(`/tasks/${parsed.data.taskId}`);
   return ok();
+}
+
+function refused(error: { message?: string; code?: string } | null): ActionResult {
+  const code = isErrorKey(error?.message) ? error.message : undefined;
+  return fail(errorMessage(error), undefined, code);
+}
+
+export async function requestExtraHours(input: RequestExtraHoursInput): Promise<ActionResult> {
+  await requireViewer();
+  const parsed = requestExtraHoursSchema.safeParse(input);
+  if (!parsed.success) return invalidInput(parsed.error);
+
+  const supabase = createClient(await cookies());
+  const { error } = await supabase.rpc("request_extra_hours", {
+    p_task_id: parsed.data.taskId,
+    p_minutes: parsed.data.minutes,
+    p_reason: parsed.data.reason,
+  });
+  if (error) return refused(error);
+
+  revalidateWork();
+  return ok();
+}
+
+export async function decideExtraHours(input: DecideExtraHoursInput): Promise<ActionResult> {
+  await requireAdmin();
+  const parsed = decideExtraHoursSchema.safeParse(input);
+  if (!parsed.success) return invalidInput(parsed.error);
+
+  const supabase = createClient(await cookies());
+  const { error } = await supabase.rpc("decide_extra_hours", {
+    p_request_id: parsed.data.requestId,
+    p_approve: parsed.data.approve,
+    ...(parsed.data.reason ? { p_reason: parsed.data.reason } : {}),
+  });
+  if (error) return refused(error);
+
+  revalidateWork();
+  return ok();
+}
+
+export async function holdTask(input: TaskIdInput): Promise<ActionResult> {
+  await requireAdmin();
+  const parsed = taskIdSchema.safeParse(input);
+  if (!parsed.success) return invalidInput(parsed.error);
+
+  const supabase = createClient(await cookies());
+  const { error } = await supabase.rpc("hold_task", { p_task_id: parsed.data.taskId });
+  if (error) return refused(error);
+
+  revalidateWork();
+  return ok();
+}
+
+export async function resumeTask(input: TaskIdInput): Promise<ActionResult> {
+  await requireAdmin();
+  const parsed = taskIdSchema.safeParse(input);
+  if (!parsed.success) return invalidInput(parsed.error);
+
+  const supabase = createClient(await cookies());
+  const { error } = await supabase.rpc("resume_task", { p_task_id: parsed.data.taskId });
+  if (error) return refused(error);
+
+  revalidateWork();
+  return ok();
+}
+
+export async function cancelTask(input: TaskCommentInput): Promise<ActionResult> {
+  await requireAdmin();
+  const parsed = taskCommentSchema.safeParse(input);
+  if (!parsed.success) return invalidInput(parsed.error);
+
+  const supabase = createClient(await cookies());
+  const { error } = await supabase.rpc("cancel_task", {
+    p_task_id: parsed.data.taskId,
+    ...(parsed.data.comment ? { p_comment: parsed.data.comment } : {}),
+  });
+  if (error) return refused(error);
+
+  revalidateWork();
+  return ok();
+}
+
+export async function reassignTask(input: ReassignTaskInput): Promise<ActionResult> {
+  await requireAdmin();
+  const parsed = reassignTaskSchema.safeParse(input);
+  if (!parsed.success) return invalidInput(parsed.error);
+
+  const supabase = createClient(await cookies());
+  const { error } = await supabase.rpc("assign_task", {
+    p_task_id: parsed.data.taskId,
+    p_assignee_id: parsed.data.assigneeId,
+  });
+  if (error?.message === "assignee_not_member") {
+    return fail("Check the highlighted fields.", { assigneeId: ["This person isn't a member of the project."] });
+  }
+  if (error) return refused(error);
+
+  revalidateWork();
+  return ok();
+}
+
+export async function markTaskDone(input: TaskCommentInput): Promise<ActionResult> {
+  await requireViewer();
+  const parsed = taskCommentSchema.safeParse(input);
+  if (!parsed.success) return invalidInput(parsed.error);
+
+  const supabase = createClient(await cookies());
+  const { error } = await supabase.rpc("mark_task_done", {
+    p_task_id: parsed.data.taskId,
+    ...(parsed.data.comment ? { p_comment: parsed.data.comment } : {}),
+  });
+  if (error) return refused(error);
+
+  revalidateWork();
+  return ok();
+}
+
+export async function acceptTask(input: TaskIdInput): Promise<ActionResult> {
+  await requireAdmin();
+  const parsed = taskIdSchema.safeParse(input);
+  if (!parsed.success) return invalidInput(parsed.error);
+
+  const supabase = createClient(await cookies());
+  const { error } = await supabase.rpc("accept_task", { p_task_id: parsed.data.taskId });
+  if (error) return refused(error);
+
+  revalidateWork();
+  return ok();
+}
+
+export async function returnTask(input: ReturnTaskInput): Promise<ActionResult> {
+  await requireAdmin();
+  const parsed = returnTaskSchema.safeParse(input);
+  if (!parsed.success) return invalidInput(parsed.error);
+
+  const supabase = createClient(await cookies());
+  const { error } = await supabase.rpc("return_task", {
+    p_task_id: parsed.data.taskId,
+    p_comment: parsed.data.comment,
+  });
+  if (error) return refused(error);
+
+  revalidateWork();
+  return ok();
+}
+
+// Decisions change the approvals inbox and its sidebar count, so the whole app refreshes.
+function revalidateWork() {
+  revalidatePath("/", "layout");
 }
 
 function revalidateProject(projectId: string) {

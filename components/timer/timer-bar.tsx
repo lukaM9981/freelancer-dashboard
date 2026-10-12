@@ -48,7 +48,7 @@ export function TimerBar() {
       <Tooltip>
         <TooltipTrigger
           render={
-            <Button size="icon-sm" aria-label="Stop timer" onClick={stop}>
+            <Button size="icon-sm" aria-label="Stop timer" onClick={() => stop()}>
               <SquareIcon />
             </Button>
           }

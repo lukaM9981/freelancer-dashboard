@@ -118,3 +118,61 @@ export type AddLinkInput = z.infer<typeof addLinkSchema>;
 
 export const removeLinkSchema = z.object({ taskId, linkId: z.uuid("This link doesn't exist.") });
 export type RemoveLinkInput = z.infer<typeof removeLinkSchema>;
+
+const extraMinutes = z
+  .number({ error: "Enter a duration like 1h 30m." })
+  .int("Enter a duration like 1h 30m.")
+  .positive("Use at least 15 minutes.")
+  .multipleOf(ESTIMATE_STEP, "Use 15-minute steps.");
+
+const extraReason = z
+  .string()
+  .trim()
+  .min(1, "Write a reason.")
+  .max(2000, "Use at most 2,000 characters.");
+
+const optionalComment = z.string().trim().max(5000, "Use at most 5,000 characters.");
+
+export const requestExtraHoursSchema = z.object({
+  taskId,
+  minutes: extraMinutes,
+  reason: extraReason,
+});
+export type RequestExtraHoursInput = z.infer<typeof requestExtraHoursSchema>;
+export const requestExtraHoursFormSchema = requestExtraHoursSchema.omit({ taskId: true });
+export type RequestExtraHoursFormValues = z.infer<typeof requestExtraHoursFormSchema>;
+
+export const rejectExtraHoursFormSchema = z.object({ reason: extraReason });
+export type RejectExtraHoursFormValues = z.infer<typeof rejectExtraHoursFormSchema>;
+
+export const decideExtraHoursSchema = z
+  .object({
+    taskId,
+    requestId: z.uuid("This request doesn't exist."),
+    approve: z.boolean(),
+    reason: z.string().trim().max(2000, "Use at most 2,000 characters."),
+  })
+  .superRefine((value, ctx) => {
+    if (!value.approve && value.reason.length === 0) {
+      ctx.addIssue({ code: "custom", path: ["reason"], message: "Write a reason." });
+    }
+  });
+export type DecideExtraHoursInput = z.infer<typeof decideExtraHoursSchema>;
+
+export const taskCommentSchema = z.object({ taskId, comment: optionalComment });
+export type TaskCommentInput = z.infer<typeof taskCommentSchema>;
+export const optionalCommentFormSchema = taskCommentSchema.omit({ taskId: true });
+export type OptionalCommentFormValues = z.infer<typeof optionalCommentFormSchema>;
+
+export const returnTaskSchema = z.object({ taskId, comment: commentBody });
+export type ReturnTaskInput = z.infer<typeof returnTaskSchema>;
+export const returnCommentFormSchema = returnTaskSchema.omit({ taskId: true });
+export type ReturnCommentFormValues = z.infer<typeof returnCommentFormSchema>;
+
+export const reassignTaskSchema = z.object({
+  taskId,
+  assigneeId: z.uuid("Choose a person."),
+});
+export type ReassignTaskInput = z.infer<typeof reassignTaskSchema>;
+export const reassignFormSchema = reassignTaskSchema.omit({ taskId: true });
+export type ReassignFormValues = z.infer<typeof reassignFormSchema>;

@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
-import { PlaceholderPage } from "@/components/layout/placeholder-page";
+import { MonthlyReport } from "@/components/reports/monthly-report";
 
 export const metadata: Metadata = { title: "Reports · Olifant Workboard" };
 
-export default function ReportsPage() {
-  return (
-    <PlaceholderPage
-      title="Reports"
-      emptyTitle="No report yet"
-      emptyDescription="Monthly reports will show up here."
-    />
-  );
+type ReportsPageProps = { searchParams: Promise<{ user?: string | string[] }> };
+
+export default async function ReportsPage({ searchParams }: ReportsPageProps) {
+  const { user } = await searchParams;
+  return <MonthlyReport userParam={firstParam(user)} />;
+}
+
+function firstParam(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
 }

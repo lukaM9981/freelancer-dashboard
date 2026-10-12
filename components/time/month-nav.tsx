@@ -9,15 +9,21 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 
 type MonthOption = { value: string; label: string };
 
-/** Month picker for My time. `month` and `currentMonth` are `yyyy-MM-01`; the list is newest first. */
+/**
+ * Month picker. `month` and `currentMonth` are `yyyy-MM-01`; the list is newest first.
+ * Without `hrefs`, a choice opens My time. `hrefs` is a plain map so a server page can
+ * point the same picker at Reports.
+ */
 export function MonthNav({
   months,
   month,
   currentMonth,
+  hrefs,
 }: {
   months: MonthOption[];
   month: string;
   currentMonth: string;
+  hrefs?: Record<string, string>;
 }) {
   const router = useRouter();
   const index = months.findIndex((item) => item.value === month);
@@ -26,8 +32,7 @@ export function MonthNav({
   const items = Object.fromEntries(months.map((item) => [item.value, item.label]));
 
   function go(value: string) {
-    const param = value.slice(0, 7);
-    router.push(value === currentMonth ? "/time" : `/time?month=${param}`);
+    router.push(hrefs?.[value] ?? (value === currentMonth ? "/time" : `/time?month=${value.slice(0, 7)}`));
   }
 
   return (

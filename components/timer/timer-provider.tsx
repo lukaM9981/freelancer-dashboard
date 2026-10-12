@@ -11,7 +11,9 @@ import type { RunningTimer } from "@/lib/time/queries";
 
 export type TimerTask = { id: string; title: string; projectName: string };
 
-type Review = { stoppedAt: number; then: TimerTask | null };
+type Review = { stoppedAt: number; then: TimerTask | null; nextStep: string | null };
+
+type StopNext = { after: () => void; nextStep: string };
 
 type TimerContextValue = {
   timer: RunningTimer | null;
@@ -20,7 +22,8 @@ type TimerContextValue = {
   /** The task a start is in flight for. */
   startingTaskId: string | null;
   start: (task: TimerTask) => void;
-  stop: () => void;
+  /** Opens the review. `next` runs only after the run is saved, discarded, or already stopped. */
+  stop: (next?: StopNext) => void;
 };
 
 const TimerContext = createContext<TimerContextValue | null>(null);
@@ -61,6 +64,7 @@ export function TimerProvider({
   const { now, read: readClock } = useServerClock(serverNow, timer != null);
 
   const timerRef = useRef(timer);
+  const afterStopRef = useRef<(() => void) | null>(null);
   useEffect(() => {
     timerRef.current = timer;
   }, [timer]);
@@ -75,6 +79,7 @@ export function TimerProvider({
       if (payload.eventType === "UPDATE" && row.id && row.stopped_at) {
         setStoppedId(row.id);
         if (timerRef.current?.id === row.id) {
+          afterStopRef.current = null;
           setReview(null);
           if (row.outcome === "auto_saved") {
             toast.info("The timer stopped automatically", {
@@ -122,7 +127,8 @@ export function TimerProvider({
       if (running?.taskId === task.id) return;
       if (running) {
         // One running timer per person: review the current one, then start the new one.
-        setReview({ stoppedAt: readClock(), then: task });
+        afterStopRef.current = null;
+        setReview({ stoppedAt: readClock(), then: task, nextStep: null });
         return;
       }
       void startNow(task);
@@ -130,9 +136,17 @@ export function TimerProvider({
     [readClock, startNow],
   );
 
-  const stop = useCallback(() => {
-    if (timerRef.current) setReview({ stoppedAt: readClock(), then: null });
-  }, [readClock]);
+  const stop = useCallback(
+    (next?: StopNext) => {
+      if (!timerRef.current) {
+        next?.after();
+        return;
+      }
+      afterStopRef.current = next?.after ?? null;
+      setReview({ stoppedAt: readClock(), then: null, nextStep: next?.nextStep ?? null });
+    },
+    [readClock],
+  );
 
   const value = useMemo<TimerContextValue>(
     () => ({ timer, now, startingTaskId, start, stop }),
@@ -148,14 +162,21 @@ export function TimerProvider({
           timer={timer}
           stoppedAt={review.stoppedAt}
           then={review.then}
+          nextStep={review.nextStep}
           timeZone={timeZone}
-          onCancel={() => setReview(null)}
+          onCancel={() => {
+            afterStopRef.current = null;
+            setReview(null);
+          }}
           onFinished={(message) => {
             const next = review.then;
+            const after = afterStopRef.current;
+            afterStopRef.current = null;
             setStoppedId(timer.id);
             setReview(null);
             setAnnouncement(message);
             if (next) void startNow(next);
+            after?.();
           }}
         />
       ) : null}

@@ -14,7 +14,7 @@ export function StartTimerButton({ task, variant }: { task: TimerTask; variant: 
   const running = timer?.taskId === task.id;
   const pending = startingTaskId === task.id;
   const label = running ? "Stop timer" : "Start timer";
-  const onClick = running ? stop : () => start(task);
+  const onClick = () => (running ? stop() : start(task));
 
   if (variant === "primary") {
     return (
