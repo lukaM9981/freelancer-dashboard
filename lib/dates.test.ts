@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   addCalendarDays,
+  dayStartInZone,
   formatAge,
   formatCalendarDate,
   formatDate,
@@ -16,6 +17,19 @@ import {
 } from "@/lib/dates";
 
 const zone = "Europe/Budapest";
+
+describe("dayStartInZone", () => {
+  it("starts the day at local midnight, across daylight saving changes", () => {
+    expect(dayStartInZone("2026-10-06", zone)).toBe("2026-10-05T22:00:00.000Z");
+    expect(dayStartInZone("2026-11-02", zone)).toBe("2026-11-01T23:00:00.000Z");
+    expect(dayStartInZone("2026-10-06", "America/New_York")).toBe("2026-10-06T04:00:00.000Z");
+  });
+
+  it("refuses dates that don't exist", () => {
+    expect(() => dayStartInZone("2026-02-30", zone)).toThrow();
+    expect(() => dayStartInZone("6 Oct 2026", zone)).toThrow();
+  });
+});
 
 describe("formatDate", () => {
   it("renders the organization's time zone, not UTC", () => {

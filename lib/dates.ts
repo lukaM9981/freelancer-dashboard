@@ -1,4 +1,4 @@
-import { tz } from "@date-fns/tz";
+import { TZDate, tz } from "@date-fns/tz";
 import {
   addDays,
   differenceInHours,
@@ -96,6 +96,17 @@ export function addCalendarDays(isoDate: string, days: number): string {
   if (!match || !Number.isInteger(days)) throw new Error("That isn't a valid date.");
   const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]) + days, 12));
   return format(date, "yyyy-MM-dd", { in: tz("UTC") });
+}
+
+/** The moment a `yyyy-MM-dd` day starts in a named zone, as an ISO timestamp. */
+export function dayStartInZone(isoDate: string, timeZone: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate);
+  if (!match) throw new Error("That isn't a valid date.");
+  const start = new TZDate(Number(match[1]), Number(match[2]) - 1, Number(match[3]), timeZone);
+  if (!isValid(start) || format(start, "yyyy-MM-dd", { in: tz(timeZone) }) !== isoDate) {
+    throw new Error("That isn't a valid date.");
+  }
+  return new Date(start.getTime()).toISOString();
 }
 
 /** "6 Oct 2026, 14:05" */

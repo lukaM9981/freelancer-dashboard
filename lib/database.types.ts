@@ -482,6 +482,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "notifications_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "audit_log"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "notifications_recipient_id_fkey"
             columns: ["recipient_id"]
             isOneToOne: false
@@ -1076,6 +1083,29 @@ export type Database = {
           waiting_since: string | null
         }
         Relationships: []
+      }
+      audit_log: {
+        Row: {
+          actor_id: string | null
+          data: Json | null
+          entity_id: string | null
+          event_type: string | null
+          id: number | null
+          occurred_at: string | null
+          project_id: string | null
+          subject_user_id: string | null
+          task_id: string | null
+          txid: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_events_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       report_lines: {
         Row: {

@@ -130,6 +130,7 @@ lib/
   months/      actions.ts, queries.ts
   reports/     queries.ts, csv.ts
   notifications/ actions.ts, queries.ts, describe.ts (in-app copy and links)
+  audit/       queries.ts, events.ts (event type groups), filters.ts (URL filters), describe.ts (sentences, before and after)
   email/       dispatch.ts, send.ts, styles.ts, invitation.tsx, templates/ (notification-email.tsx, content.ts)
   db/          errors.ts (error key → message), result.ts (ActionResult helpers)
   supabase/    admin.ts (secret key; server-only)
@@ -144,12 +145,13 @@ components/
   timer/                            timer-bar.tsx, timer-review-dialog.tsx, start-timer-button.tsx
   layout/                           app-sidebar.tsx, top-bar.tsx, page-header.tsx
   notifications/                    notification-bell.tsx, notification-entry.tsx, notification-list.tsx
+  audit/                            audit-filters.tsx, audit-list.tsx
   tasks/, proposals/, time/, people/, projects/, dashboard/
 scripts/
   bootstrap-admin.ts                creates the first Admin's invitation
   seed-demo.ts                      realistic demo data for the client presentation
 supabase/
-  migrations/                       0001–0011
+  migrations/                       0001–0012
   scenarios/                        SQL scenario checks
   tests/                            pgTAP tests (build order step 3)
 docs/                               PRD.md, DB.md, Tech.md, Design.md
@@ -534,7 +536,8 @@ with demo data from `scripts/seed-demo.ts`, no real client data.
 
 Per environment:
 
-1. Supabase: apply the migrations (`supabase db push`); turn off "Allow new users to sign
+1. Supabase: apply the migrations (`supabase db push`; on the development project `0012`
+   was applied before `0011`, so pushing `0011` there needs `--include-all`); turn off "Allow new users to sign
    up"; set custom SMTP to Resend; add `/confirm` on every origin to the redirect allow
    list; enable `pg_cron` and `pg_net`; create the Vault secrets; run the advisors.
 2. Resend: verify the sending domain (SPF, DKIM).

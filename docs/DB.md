@@ -1596,6 +1596,21 @@ to their own, the same view serves the Admin report and the freelancer's own rep
 `approval_queue` (in `0006`) is the Admin inbox: pending proposals with their item count
 and range, pending extra-hours requests, and tasks marked Done, each with `waiting_since`.
 
+```sql
+create view public.audit_log
+with (security_invoker = true) as
+select e.id, e.occurred_at, e.txid, e.actor_id, e.event_type,
+       coalesce(e.project_id, t.project_id) as project_id,
+       e.task_id, e.subject_user_id, e.entity_id, e.data
+  from public.audit_events e
+  left join public.tasks t on t.id = e.task_id;
+```
+
+`audit_log` (in `0012`) is the Admin audit log (PRD §6.13). `comment.updated` and
+`comment.deleted` are written without a `project_id`, so the view takes the project from the
+task, and filtering by project finds every event on that project's tasks. RLS is that of
+`audit_events`, so freelancers still see only their tasks' history.
+
 ## 9. Realtime and scheduled jobs
 
 - `0010` adds `timers` and `notifications` to the `supabase_realtime` publication. The
@@ -1717,6 +1732,7 @@ supabase/migrations/
   0009_commands_time_months.sql
   0010_grants_realtime.sql         EXECUTE on commands, Realtime publication
   0011_email_cron.sql              pg_cron job for the email outbox (needs Vault secrets)
+  0012_audit_log.sql               audit_log view for the Admin audit log
 supabase/scenarios/
   10_scenarios.sql, 20_more.sql,
   30_review_fixes.sql              the 105 checks described at the top
