@@ -6,6 +6,7 @@ import { createClient } from "@/utils/supabase/server";
 import { requireAdmin } from "@/lib/auth/queries";
 import { errorMessage, isErrorKey } from "@/lib/db/errors";
 import { type ActionResult, fail, invalidInput, ok } from "@/lib/db/result";
+import { scheduleEmailDispatch } from "@/lib/email/dispatch";
 import {
   type CloseMonthInput,
   type ReopenMonthInput,
@@ -24,6 +25,7 @@ export async function closeMonth(input: CloseMonthInput): Promise<ActionResult> 
   const { error } = await supabase.rpc("close_month", { p_month: parsed.data.month });
   if (error) return dbFailure(error);
 
+  scheduleEmailDispatch();
   revalidatePath("/", "layout");
   return ok();
 }

@@ -7,6 +7,7 @@ import { createClient } from "@/utils/supabase/server";
 import { requireAdmin } from "@/lib/auth/queries";
 import { errorMessage } from "@/lib/db/errors";
 import { type ActionResult, fail, invalidInput, ok } from "@/lib/db/result";
+import { scheduleEmailDispatch } from "@/lib/email/dispatch";
 import {
   type ProjectFormInput,
   type ProjectMemberInput,
@@ -63,6 +64,7 @@ export async function setProjectStatus(input: SetProjectStatusInput): Promise<Ac
   });
   if (error) return fail(errorMessage(error));
 
+  scheduleEmailDispatch();
   revalidateProject(parsed.data.projectId);
   return ok();
 }

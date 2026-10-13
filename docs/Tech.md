@@ -129,8 +129,8 @@ lib/
   time/        actions.ts, queries.ts, schemas.ts
   months/      actions.ts, queries.ts
   reports/     queries.ts, csv.ts
-  notifications/ actions.ts, queries.ts
-  email/       dispatch.ts, send.ts, templates/*.tsx
+  notifications/ actions.ts, queries.ts, describe.ts (in-app copy and links)
+  email/       dispatch.ts, send.ts, styles.ts, invitation.tsx, templates/ (notification-email.tsx, content.ts)
   db/          errors.ts (error key → message), result.ts (ActionResult helpers)
   supabase/    admin.ts (secret key; server-only)
   duration.ts, money.ts, dates.ts, format.ts
@@ -142,7 +142,8 @@ components/
   text-field.tsx, submit-button.tsx  react-hook-form field and pending submit button
   auth/                             sign-in, reset, and invitation forms; Notice
   timer/                            timer-bar.tsx, timer-review-dialog.tsx, start-timer-button.tsx
-  layout/                           app-sidebar.tsx, top-bar.tsx, page-header.tsx, notification-bell.tsx
+  layout/                           app-sidebar.tsx, top-bar.tsx, page-header.tsx
+  notifications/                    notification-bell.tsx, notification-entry.tsx, notification-list.tsx
   tasks/, proposals/, time/, people/, projects/, dashboard/
 scripts/
   bootstrap-admin.ts                creates the first Admin's invitation
@@ -395,32 +396,41 @@ local state or calls `router.refresh()`.
 ## 9. Notifications and email
 
 **In-app.** The database creates notifications (DB.md §5.6). The bell shows the
-server-rendered unread count and updates live; the Notifications page lists them;
-`mark_notifications_read` marks one or all.
+server-rendered unread count and the ten newest in a popover, and refreshes when the
+`bell:{userId}` channel sees an insert; the Notifications page lists them (All and Unread,
+50 at a time). `lib/notifications/describe.ts` turns each row into a sentence and a link,
+and joins the estimate decisions of one action into one item. Opening an item marks it
+read; `mark_notifications_read` marks one or all.
 
 **Email** uses the `notifications` table as an outbox:
 
 1. A command creates notifications with `email_status = 'pending'` (the PRD §6.12 events
    with Email = Yes).
-2. The server action schedules `after(dispatchEmails)`.
+2. The server action calls `scheduleEmailDispatch()`, which runs `dispatchEmails` in
+   `after()`.
 3. `lib/email/dispatch.ts` (secret key) calls `claim_email_batch(20)`, which locks due rows
    and marks them `sending`; groups them by `(recipient_id, txid)` — one group is one
    action for one person; loads the events, recipient, task, and project; renders one
-   React Email template per group; sends it with Resend using the idempotency key
-   `{recipient_id}:{txid}`; and calls `complete_email_batch(ids, sent, error)`.
+   React Email template per group to HTML and text; sends it with Resend using the
+   idempotency key `{recipient_id}:{txid}`, about two a second (Resend's default limit);
+   and calls `complete_email_batch(ids, sent, error)`. A round with a failure ends the run,
+   because a failed row is claimable again at once and would otherwise spend its five
+   attempts within seconds.
 4. `/api/cron/dispatch-emails` (POST, `Authorization: Bearer CRON_SECRET`) runs the same
-   dispatcher until nothing is due. `pg_cron` calls it every five minutes (migration
+   dispatcher for up to ten rounds. `pg_cron` calls it every five minutes (migration
    `0011`), which retries failures (up to five attempts) and anything an interrupted
    `after()` left behind.
 
 A failed email never undoes or blocks the action that caused it, and its error stays on the
 notification row for the Admin to see.
 
-**Templates** (`lib/email/templates/`): Invitation, TaskAssigned, ProposalSubmitted,
-ProposalDecided (lists every decision in the action), ExtraHoursRequested,
-ExtraHoursDecided, TaskDone, TaskAcceptedOrReturned, TaskStatusChanged (hold, resume,
-cancel, reassign), ProjectStatusChanged, MonthClosed (the freelancer's totals per
-currency). Each one has a short summary and one yellow button to the item. Email clients
+**Templates**: the Invitation is `lib/email/invitation.tsx`. The notification emails share
+one frame (`lib/email/templates/notification-email.tsx`), and `templates/content.ts`
+builds what each says: TaskAssigned, ProposalSubmitted, ProposalDecided (lists every
+decision in the action), ExtraHoursRequested, ExtraHoursDecided, TaskDone,
+TaskAcceptedOrReturned, TaskStatusChanged (hold, resume, cancel, reassign),
+ProjectStatusChanged, MonthClosed (the freelancer's totals per currency). Each one has a
+short summary and one yellow button to the item. Email clients
 do not load the brand fonts reliably, so templates use Georgia for headings and the system
 sans-serif for text, with the logo as a PNG from `public/brand/`.
 
@@ -432,8 +442,8 @@ straight to the Admin who decided.
 
 Each dashboard section is one query against the tables and views in DB.md §8, run in
 parallel. Admin: `approval_queue` (waiting), running `timers` (tracking now), entries and
-`report_lines` for the month (time and cost), `task_progress` and a stalled-work query
-(risks), recent `audit_events` (activity). Freelancer: their running timer, their Draft and
+`report_lines` for the month (time and cost), open `tasks` and a stalled-work query
+(estimated versus actual, and risks), recent `audit_events` (activity). Freelancer: their running timer, their Draft and
 Changes requested tasks, `task_progress` for active tasks, `report_lines` for the month, and
 their latest revisions. Example SQL is in DB.md §11.
 

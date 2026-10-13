@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
 import { requireAdmin, requireViewer } from "@/lib/auth/queries";
 import { errorMessage } from "@/lib/db/errors";
+import { scheduleEmailDispatch } from "@/lib/email/dispatch";
 import { type ActionResult, fail, invalidInput, ok } from "@/lib/db/result";
 import {
   type DecideItemInput,
@@ -29,6 +30,7 @@ export async function submitProposal(input: SubmitProposalInput): Promise<Action
   });
   if (error || !proposalId) return fail(errorMessage(error));
 
+  scheduleEmailDispatch();
   revalidateApprovals();
   return ok({ proposalId });
 }
@@ -59,6 +61,7 @@ export async function decideItem(input: DecideItemInput): Promise<ActionResult> 
   });
   if (error) return fail(errorMessage(error));
 
+  scheduleEmailDispatch();
   revalidateApprovals();
   return ok();
 }
@@ -72,6 +75,7 @@ export async function approveAllRemaining(input: ProposalIdInput): Promise<Actio
   const { error } = await supabase.rpc("approve_all_remaining", { p_proposal_id: parsed.data.proposalId });
   if (error) return fail(errorMessage(error));
 
+  scheduleEmailDispatch();
   revalidateApprovals();
   return ok();
 }

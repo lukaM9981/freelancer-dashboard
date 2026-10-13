@@ -7,6 +7,7 @@ import { createClient } from "@/utils/supabase/server";
 import { requireAdmin, requireViewer } from "@/lib/auth/queries";
 import { errorMessage, isErrorKey } from "@/lib/db/errors";
 import { type ActionResult, fail, invalidInput, ok } from "@/lib/db/result";
+import { scheduleEmailDispatch } from "@/lib/email/dispatch";
 import {
   type AddCommentInput,
   type AddLinkInput,
@@ -55,6 +56,7 @@ export async function createTask(input: CreateTaskInput): Promise<ActionResult> 
   }
   if (error || !taskId) return fail(errorMessage(error));
 
+  if (isAdmin && assigneeId) scheduleEmailDispatch();
   revalidateProject(projectId);
 
   // Freelancers create tasks for themselves and can estimate them straight away.
@@ -134,6 +136,7 @@ export async function updateTask(input: UpdateTaskInput): Promise<ActionResult> 
       return fail("Check the highlighted fields.", { assigneeId: ["This person isn't a member of the project."] });
     }
     if (error) return fail(errorMessage(error));
+    scheduleEmailDispatch();
   }
 
   revalidateTask(taskId, task.project_id);
@@ -246,6 +249,7 @@ export async function requestExtraHours(input: RequestExtraHoursInput): Promise<
   });
   if (error) return refused(error);
 
+  scheduleEmailDispatch();
   revalidateWork();
   return ok();
 }
@@ -263,6 +267,7 @@ export async function decideExtraHours(input: DecideExtraHoursInput): Promise<Ac
   });
   if (error) return refused(error);
 
+  scheduleEmailDispatch();
   revalidateWork();
   return ok();
 }
@@ -276,6 +281,7 @@ export async function holdTask(input: TaskIdInput): Promise<ActionResult> {
   const { error } = await supabase.rpc("hold_task", { p_task_id: parsed.data.taskId });
   if (error) return refused(error);
 
+  scheduleEmailDispatch();
   revalidateWork();
   return ok();
 }
@@ -289,6 +295,7 @@ export async function resumeTask(input: TaskIdInput): Promise<ActionResult> {
   const { error } = await supabase.rpc("resume_task", { p_task_id: parsed.data.taskId });
   if (error) return refused(error);
 
+  scheduleEmailDispatch();
   revalidateWork();
   return ok();
 }
@@ -305,6 +312,7 @@ export async function cancelTask(input: TaskCommentInput): Promise<ActionResult>
   });
   if (error) return refused(error);
 
+  scheduleEmailDispatch();
   revalidateWork();
   return ok();
 }
@@ -324,6 +332,7 @@ export async function reassignTask(input: ReassignTaskInput): Promise<ActionResu
   }
   if (error) return refused(error);
 
+  scheduleEmailDispatch();
   revalidateWork();
   return ok();
 }
@@ -340,6 +349,7 @@ export async function markTaskDone(input: TaskCommentInput): Promise<ActionResul
   });
   if (error) return refused(error);
 
+  scheduleEmailDispatch();
   revalidateWork();
   return ok();
 }
@@ -353,6 +363,7 @@ export async function acceptTask(input: TaskIdInput): Promise<ActionResult> {
   const { error } = await supabase.rpc("accept_task", { p_task_id: parsed.data.taskId });
   if (error) return refused(error);
 
+  scheduleEmailDispatch();
   revalidateWork();
   return ok();
 }
@@ -369,6 +380,7 @@ export async function returnTask(input: ReturnTaskInput): Promise<ActionResult> 
   });
   if (error) return refused(error);
 
+  scheduleEmailDispatch();
   revalidateWork();
   return ok();
 }
