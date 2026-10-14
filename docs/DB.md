@@ -1,19 +1,21 @@
 # Olifant Workboard — Database Schema
 
 Target: Supabase Postgres **17**. The migrations that create everything below live in
-`supabase/migrations/` (`0001`–`0011`). Product rules come from [PRD.md](./PRD.md); the
+`supabase/migrations/` (`0001`–`0013`). Product rules come from [PRD.md](./PRD.md); the
 surrounding architecture is in [Tech.md](./Tech.md).
 
-The migrations are not a sketch. Migrations `0001`–`0010` were applied to a clean Postgres
-database with a small stand-in for Supabase's `auth` schema and roles, and three scenario
-scripts (`supabase/scenarios/`) ran 105 checks against them. Those checks cover access
-isolation (including after a task changes hands), the estimate and approval flow,
-counting time against limits (including the PRD §5.4 example), timer splits at midnight
-and across the October daylight-saving change, automatic timer stops, closing and
-reopening a month, notifications and their payloads, the email outbox, archived projects,
-and deactivation. An independent review of these documents against the SQL found sixteen
-issues; all are fixed and the third script checks them. `0011` (the email retry job)
-needs `pg_cron`, so it is applied on Supabase only.
+The migrations are not a sketch. Migrations `0001`–`0010` were first applied to a clean
+Postgres database with a small stand-in for Supabase's `auth` schema and roles, and three
+scenario scripts ran 105 checks against them. Those checks cover access isolation
+(including after a task changes hands), the estimate and approval flow, counting time
+against limits (including the PRD §5.4 example), timer splits at midnight and across the
+October daylight-saving change, automatic timer stops, closing and reopening a month,
+notifications and their payloads, the email outbox, archived projects, and deactivation.
+An independent review of these documents against the SQL found sixteen issues; all are
+fixed and the third script checks them. The scripts are now the pgTAP tests in
+`supabase/tests/` (section 12), which run on a real Supabase project and add isolation
+checks for every table and view. `0011` (the email retry job) needs `pg_cron` and Vault
+secrets, so it is applied to the development and production projects only.
 
 ## 1. Conventions
 
@@ -58,7 +60,7 @@ DELETE privilege on any table. Every change is a call to a function such as
 Commands are `security definer` with `set search_path = ''`, because they must do things
 the caller may not do directly: write history, notify other people, recount time, freeze
 a month. The cost of definer functions is that authorization lives in their code, so the
-pattern is fixed and the scenario checks exercise it: every command starts with
+pattern is fixed and the database tests exercise it: every command starts with
 `require_active()`/`require_admin()`, and every task lookup goes through `app.lock_task()`,
 which answers `task_not_found` for a task the caller cannot see and `project_archived` for
 anything in an archived project.
@@ -1029,7 +1031,7 @@ whatever falls above the ceiling is over limit. It runs after every change to a 
 time, after an extra-hours approval, after a tolerance change, and at month close. It also
 emits `task.limit_reached` and `task.over_limit` the moment a task crosses either line.
 
-The scenario checks include the PRD example (8 h limit, 8 h 48 min ceiling, 8 h 30 min
+The database tests include the PRD example (8 h limit, 8 h 48 min ceiling, 8 h 30 min
 tracked, then one more hour → 18 minutes counted, 42 over limit) and the follow-up: one
 approved extra hour turns those 42 minutes back into counted time.
 
@@ -1523,7 +1525,8 @@ create policy notifications_select on public.notifications
 
 ### 7.2 Privileges
 
-`0005` and `0010` set them explicitly instead of relying on project defaults:
+`0005`, `0010`, and `0013` (for the views) set them explicitly instead of relying on
+project defaults:
 
 - `anon` has nothing.
 - `authenticated` has SELECT on every table and view, EXECUTE on the command functions in
@@ -1733,10 +1736,18 @@ supabase/migrations/
   0010_grants_realtime.sql         EXECUTE on commands, Realtime publication
   0011_email_cron.sql              pg_cron job for the email outbox (needs Vault secrets)
   0012_audit_log.sql               audit_log view for the Admin audit log
-supabase/scenarios/
-  10_scenarios.sql, 20_more.sql,
-  30_review_fixes.sql              the 105 checks described at the top
+  0013_view_privileges.sql         views: nothing for anon, SELECT only for authenticated
+supabase/tests/
+  setup.sql                        pgTAP, the tests schema helpers, tests.reset_data()
+  10_scenarios.test.sql, 20_more.test.sql,
+  30_review_fixes.test.sql         the 105 checks described at the top
+  40_isolation.test.sql            every table and view per person, and the catalog
 ```
+
+`0013` exists because `0005` revoked Supabase's default privileges before `0006` and `0012`
+created the views, so `anon` and `authenticated` kept every privilege on them. Nothing
+leaked, because the views are `security_invoker` and none is updatable, but section 7.2
+says `anon` has nothing. The isolation tests found it.
 
 After applying them to a project:
 
@@ -1746,7 +1757,8 @@ After applying them to a project:
 4. Generate TypeScript types into `lib/database.types.ts`
    (`supabase gen types typescript --linked > lib/database.types.ts`). The command
    functions appear under `Functions`, with typed arguments.
-5. Run the scenario scripts against a local Supabase (`supabase start`, then
-   `psql "$DB_URL" -f` each of the three scripts, in order) after `supabase db reset`. They create their own people and data and print `ok` / `FAIL` per
-   check. Turning them into pgTAP tests for `supabase test db` is in the build order
-   (Tech.md §16).
+5. Run the database tests with `npm run test:db` (Tech.md §16). They run against the
+   separate test project only, never the development or production project: the runner
+   empties the data first and refuses a database with anyone outside `@example.com`. The
+   files create their own people and data, build on each other in name order, and print
+   each failing check with what it got and what it wanted.

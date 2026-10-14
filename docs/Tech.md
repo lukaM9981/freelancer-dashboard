@@ -10,8 +10,8 @@ Nothing is scaffolded yet. What exists:
 - The documents in `docs/` (PRD, DB, Tech, Design).
 - The design kit: `app/globals.css`, `app/fonts.ts`, `app/fonts/`, `app/icon.png`,
   `app/apple-icon.png`, `public/brand/`, `.cursor/rules/`, `design-system/`.
-- The database: `supabase/migrations/0001`–`0011`, tested as described in DB.md, and the
-  scenario scripts in `supabase/scenarios/`.
+- The database: `supabase/migrations/0001`–`0013`, and the pgTAP tests in
+  `supabase/tests/` (section 16).
 
 Step 1 of the build order (section 17) creates the Next.js project around these files.
 **After step 1, replace this section** with the real state, as on the Invoice Generator: the
@@ -150,10 +150,10 @@ components/
 scripts/
   bootstrap-admin.ts                creates the first Admin's invitation
   seed-demo.ts                      realistic demo data for the client presentation
+  test-db.ts                        runs the pgTAP tests against the test project (section 16)
 supabase/
-  migrations/                       0001–0012
-  scenarios/                        SQL scenario checks
-  tests/                            pgTAP tests (build order step 3)
+  migrations/                       0001–0013
+  tests/                            pgTAP tests (*.test.sql) and their helpers (setup.sql)
 docs/                               PRD.md, DB.md, Tech.md, Design.md
 design-system/                      the original export, reference only
 proxy.ts
@@ -494,6 +494,10 @@ component and these custom ones with the Olifant theme, for comparison with
 | `EMAIL_FROM`                           | server only     | Verified sending address                         |
 | `NEXT_PUBLIC_APP_URL`                  | client + server | Absolute links in emails and auth redirects      |
 | `CRON_SECRET`                          | server only     | Protects `/api/cron/dispatch-emails`             |
+| `SUPABASE_TEST_DB_URL`                 | tests only      | Session pooler URI of the test project (section 16) |
+
+The tests read `.env.test.local`, which holds the test project's values for the variables
+above plus `SUPABASE_TEST_DB_URL`, and never `.env.local`.
 
 In Supabase Vault (for `pg_cron`): `app_url` and `cron_secret` with the same values.
 
@@ -504,7 +508,7 @@ In Supabase Vault (for `pg_cron`): `app_url` and `cron_secret` with the same val
 - Every command function: `security definer`, `set search_path = ''`, caller resolved
   first, every task lookup through `app.lock_task()`.
 - Freelancer isolation and money visibility enforced in the database and covered by the
-  scenario checks; screens never rely on filtering alone.
+  pgTAP tests; screens never rely on filtering alone.
 - `app` schema not exposed through the Data API; `anon` has no access to anything.
 - Public sign-up disabled in Supabase and refused by the database.
 - Invitation tokens stored only as hashes, valid seven days, single use.
@@ -517,13 +521,31 @@ In Supabase Vault (for `pg_cron`): `app_url` and `cron_secret` with the same val
 
 ## 16. Testing
 
-- **Database**: `supabase/scenarios/*.sql` run against a local Supabase after
-  `supabase db reset` (DB.md §12). Build step 3 converts them into pgTAP tests in
-  `supabase/tests/` so `supabase test db` runs them, and adds the isolation checks for
-  every table.
+- **Test project.** Docker cannot run on the development machine, so there is no local
+  Supabase. The database and end-to-end tests use a separate Supabase project that exists
+  only for them (`freelancer-dashboard-test`), configured like the development project
+  (sign-up off, Site URL and `/confirm` redirect on `http://localhost:3000`). Its data is
+  deleted on every run, so it never holds anything real. It has every migration except
+  `0011` (`pg_cron` and Vault). To apply new migrations, copy `supabase/config.toml` and
+  `supabase/migrations/` without `0011` into a temporary folder and run
+  `npx supabase db push --db-url "$SUPABASE_TEST_DB_URL" --workdir <folder>`. Never use
+  `--linked` for tests: the CLI is linked to the development project.
+- **Database** (pgTAP): `npm run test:db` runs `supabase/tests/*.test.sql` against the test
+  project. `supabase test db` needs Docker even for a remote database, so
+  `scripts/test-db.ts` runs them itself: it reads only `.env.test.local`, refuses a
+  database with anyone outside `@example.com`, applies `supabase/tests/setup.sql` (pgTAP
+  and the `tests` helpers), empties the test data with `tests.reset_data()`, and runs the
+  files in name order, each on its own connection. The files build on each other. Every
+  statement commits on its own, because the rules depend on `now()` and the transaction id
+  changing between actions, so the tests cannot run inside one rolled-back transaction.
+  `10`–`30` are the 105 scenario checks of DB.md; `40_isolation` checks every table and
+  view for two freelancers, a deactivated person, and a session with no person, and checks
+  the catalog (RLS on every table, SELECT-only policies, nothing for `anon`, read-only
+  `authenticated`, definer commands), so tables added later are covered too. Dates are
+  relative to the organization's today, so the tests run on any day.
 - **Unit** (Vitest): `lib/duration.ts`, `lib/money.ts`, `lib/reports/csv.ts` (cent
   allocation), `lib/tasks/permissions.ts`, `lib/db/errors.ts` (every key has a message).
-- **End-to-end** (Playwright, against local Supabase): bootstrap Admin → invite a
+- **End-to-end** (Playwright, against the test project): bootstrap Admin → invite a
   freelancer → accept → freelancer creates and estimates two tasks → submits → Admin
   approves all → freelancer runs the timer and adds manual time past the ceiling →
   requests extra hours → Admin approves → Done → Accept → Admin closes last month (seeded)
@@ -578,6 +600,6 @@ in `docs/PRD.md` under "Build status".
 | 13. Dashboards | Admin and freelancer dashboards | §6.11 | 6–9 h |
 | 14. Notifications and email | Bell with live updates, notifications page, Resend emails, outbox, retry job (migration 0011) | §6.12 | 7–10 h |
 | 15. Audit log | Admin audit log with filters | §6.13 | 2–4 h |
-| 16. Quality pass | Database tests (pgTAP from supabase/scenarios), responsive and accessibility pass, Playwright smoke test | §10 | 9–13 h |
+| 16. Quality pass | Database tests (pgTAP from the scenario checks), responsive and accessibility pass, Playwright smoke test | §10 | 9–13 h |
 | 17. Demo and deploy | Demo data, Vercel deploy, production Supabase settings, Resend domain | Tech.md §17 | 3–5 h |
 | **Total** | | | **89–134 h** |
