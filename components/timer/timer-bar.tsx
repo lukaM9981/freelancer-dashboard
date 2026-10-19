@@ -48,13 +48,14 @@ export function TimerBar() {
       ) : null}
       <span className="shrink-0 font-mono text-body-sm numeric">{formatTimer(seconds)}</span>
       {paused ? (
+        // Default outline is ink on transparent, so it disappears on this bar.
         <Tooltip>
           <TooltipTrigger
             render={
               <Button
                 size="icon-sm"
                 variant="outline"
-                className="size-11 sm:size-8"
+                className="size-11 border-secondary-foreground! bg-transparent! text-secondary-foreground! hover:border-neutral-50! hover:bg-neutral-50! hover:text-neutral-900! sm:size-8"
                 aria-label="Continue timer"
                 disabled={startingTaskId === timer.taskId}
                 onClick={() => start({ id: timer.taskId, title: timer.taskTitle, projectName: timer.projectName })}
@@ -69,7 +70,12 @@ export function TimerBar() {
       <Tooltip>
         <TooltipTrigger
           render={
-            <Button size="icon-sm" className="size-11 sm:size-8" aria-label="Stop timer" onClick={() => stop()}>
+            <Button
+              size="icon-sm"
+              className="size-11 hover:bg-yellow-200! hover:text-neutral-900! sm:size-8"
+              aria-label="Stop timer"
+              onClick={() => stop()}
+            >
               <SquareIcon />
             </Button>
           }

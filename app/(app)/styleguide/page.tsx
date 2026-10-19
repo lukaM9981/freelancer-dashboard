@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Square } from "lucide-react";
+import { Play, Square } from "lucide-react";
 import { DurationInput } from "@/components/duration-input";
 import { EmptyState } from "@/components/empty-state";
 import { HoursMeter } from "@/components/hours-meter";
@@ -79,7 +79,38 @@ export default async function StyleguidePage() {
           <Tooltip>
             <TooltipTrigger
               render={
-                <Button size="icon-sm" aria-label="Stop timer">
+                <Button size="icon-sm" className="hover:bg-yellow-200! hover:text-neutral-900!" aria-label="Stop timer">
+                  <Square />
+                </Button>
+              }
+            />
+            <TooltipContent>Stop timer</TooltipContent>
+          </Tooltip>
+        </div>
+        <div className="flex h-10 max-w-md items-center gap-3 rounded-full bg-secondary pr-1 pl-4 text-secondary-foreground shadow-md">
+          <span className="size-2 shrink-0 rounded-full bg-neutral-400" aria-hidden="true" />
+          <span className="eyebrow text-neutral-300!">Paused</span>
+          <span className="min-w-0 flex-1 truncate text-body-xs">Rebuild pricing page</span>
+          <span className="font-mono text-body-sm numeric">{formatTimer(5025)}</span>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  size="icon-sm"
+                  variant="outline"
+                  className="border-secondary-foreground! bg-transparent! text-secondary-foreground! hover:border-neutral-50! hover:bg-neutral-50! hover:text-neutral-900!"
+                  aria-label="Continue timer"
+                >
+                  <Play />
+                </Button>
+              }
+            />
+            <TooltipContent>Share your screen to continue</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button size="icon-sm" className="hover:bg-yellow-200! hover:text-neutral-900!" aria-label="Stop timer">
                   <Square />
                 </Button>
               }
@@ -89,7 +120,7 @@ export default async function StyleguidePage() {
         </div>
         <p className="text-caption text-muted-foreground">
           Appearance only. The live bar shows in the top bar while a timer runs, and above the
-          bottom edge on phones.
+          bottom edge on phones. While paused, Continue sits before Stop.
         </p>
       </section>
 

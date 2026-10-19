@@ -433,7 +433,11 @@ and the stop control is the 32px icon button. From left to right: an 8px
 `text-neutral-300`, the task title (truncated), the elapsed time in `font-mono numeric`,
 and a primary icon button with a `square` icon labelled "Stop timer". While paused, the
 dot is `bg-neutral-400`, the eyebrow reads "Paused", the region is labelled "Paused timer",
-and an outline `play` button labelled "Continue timer" sits before Stop.
+and an inverse outline `play` button labelled "Continue timer" sits before Stop. That play
+control uses a light border and icon (`border-secondary-foreground text-secondary-foreground`)
+so it stays visible on the ink bar; hover fills `bg-neutral-50` with an ink icon. Stop stays
+the yellow primary control. On this bar its hover lightens to `bg-yellow-200` with an ink
+icon, because the usual yellow-to-ink hover would match the bar and disappear.
 
 **Screenshots** on the task detail are a grid of bordered cards (`rounded-lg border
 border-border`), the image at 16:9, and the capture time in `text-caption`. The
