@@ -144,6 +144,12 @@ export function describeNotification(row: NotificationRow): Line {
       const month = monthLabel(data.month);
       return { text: `${month.label} was closed. Your report for it is final.`, href: month.href };
     }
+    case "screenshot.deleted":
+      return {
+        text: `${actor} deleted a screenshot on ${task}.`,
+        detail: "The image is still available on the task.",
+        href: taskHref,
+      };
     case "month.reopened": {
       const month = monthLabel(data.month);
       return withDetail({ text: `${month.label} was reopened.`, href: month.href }, text(data.reason));

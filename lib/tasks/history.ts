@@ -91,6 +91,14 @@ export function describeEvent(event: HistoryEvent, viewerId: string): HistoryLin
       return withDetail(`The timer stopped automatically and saved ${minutes(data.minutes)}.`, reason(data.reason));
     case "timer.discarded":
       return { text: `${actor} discarded the timer.` };
+    case "timer.paused":
+      return { text: `${actor} paused the timer when screen sharing stopped.` };
+    case "timer.resumed":
+      return { text: `${actor} continued the timer.` };
+    case "screenshot.captured":
+      return { text: `${actor} captured a screenshot.` };
+    case "screenshot.deleted":
+      return { text: `${actor} deleted a screenshot. Olifant can still see it.` };
     case "time_entry.created":
       return { text: `${actor} added ${minutes(data.minutes)} for ${day(data.work_date)}.` };
     case "time_entry.updated":

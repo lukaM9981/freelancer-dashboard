@@ -41,6 +41,7 @@
 - Phase 16 (16b): `npm run test:a11y` checks the screens in §9 with axe-core, on a production server that uses only the test project (port 3100, build output in `.next-a11y`, so it does not touch the dev server or `.env.local`). It is separate from `npm test` and from `npm run test:db`. Two stat cards on a phone row scale the figure so a value like €10.83 fits at 360px. Below `sm`, the timer bar is taller, and the stop control, the row start control, and the proposal decision controls are 44px. Stacked table labels are real text. Header actions, including links styled as buttons, stack full width below `sm`. The page content is the only main landmark, and the sidebar is an aside. red-600 is `#E32315` so error text clears 4.5:1 on the page (the design-system `#E62415` is 4.49:1). A select's empty value uses muted text, because that value is real text.
 - Phase 16 (16c): `npm run test:e2e` walks the loop in Tech.md §16 on the test project, in a production server on port 3200 (build output in `.next-e2e`). It calls `tests.reset_data()` first, so it must not run beside `npm run test:db` or `npm run test:a11y`, and it is separate from `npm test`. Resend is left unset, so the invitation is a link on screen. Last month's time is seeded on the second task after acceptance: an accepted task cannot take more time, and a task approved today cannot take a work date in last month, so the seed moves that task's approval date back and inserts the entry with `add_time_entry`.
 - Profile photos (during phase 17): each person uploads their own on Profile. JPG, PNG, or WebP, up to 2 MB, kept in a private Storage bucket (`avatars`). The photo replaces initials wherever that person already has an avatar, including project members. An Admin sees other people's photos; a freelancer sees only their own. Migration `0014`.
+- Screen captures (during phase 17): the timer starts only when the freelancer shares the entire screen from a computer. Sharing stopping pauses the clock; sharing again continues it. A screenshot is stored at the start and every 10 minutes. Deleting one hides it from the freelancer, leaves the file for Admins, and notifies them. Migration `0015`. Phase 17's deploy, Resend domain, and migration `0011` are unchanged.
 
 The database schema will live in `DB.md`, the architecture in `Tech.md`, and the visual
 rules in `Design.md`.
@@ -94,7 +95,8 @@ The following are explicitly out of scope for this product:
 - Freelancers seeing, messaging, or collaborating with each other.
 - Budgets or hour caps per project or per freelancer.
 - File attachments, due dates, priorities, subtasks, phases, or milestones.
-- Idle detection, screenshots, or any activity monitoring in the timer.
+- Idle detection, or activity monitoring such as keyboard and mouse counts. Screen captures
+  during a timer are in scope (section 5.5); watching the screen any other way is not.
 - Weekly timesheet approval. Control happens per task and per month.
 - Admins editing a freelancer's estimate. They approve, reject, or request changes.
 - Invoicing, payouts, or payment processing inside the application.
@@ -230,13 +232,20 @@ entered by hand.
 
 There are two ways to record time:
 
-- **Timer.** The freelancer starts a timer on a task and stops it when they finish. A
-  person has at most one running timer; starting a new one stops the current one. The
-  start time is kept on the server, so the timer survives closing the browser and shows
-  the same elapsed time on every device. Stopping opens a short review — task, start and
-  end time, description — and saves the time as an entry rounded to the nearest whole
-  minute; under one minute is discarded. A timer that runs past midnight is saved as one
-  entry per work date.
+- **Timer.** The freelancer starts a timer on a task from a computer and stops it when
+  they finish. The timer starts only after they share their entire screen in the browser.
+  A window or a single tab is refused, and a phone cannot start a timer. A person has at
+  most one running timer; starting a new one stops the current one. The clock runs only
+  while the screen stays shared. When sharing stops, the clock pauses at that moment and
+  the gap is not counted. Sharing the entire screen again continues the same timer.
+  While it runs, the app stores a screenshot at the start and then every 10 minutes.
+  Those images stay even if the time is discarded. The freelancer can delete one of
+  their screenshots; the file stays for Admins, and every Admin is notified. Stopping
+  opens a short review — task, the active time, description — and saves the time as an
+  entry rounded to the nearest whole minute; under one minute is discarded. A single
+  uninterrupted run can still be shortened in the review. A run that crosses midnight
+  is saved as one entry per work date. The paused or running timer is the same on every
+  device; only the computer that is sharing can keep the clock going.
 - **Manual entry.** For time that was not timed, or to add it afterwards: a work date, a
   duration in hours and minutes or in decimal hours, and a description.
 
@@ -417,12 +426,23 @@ button for the assignee.
 
 **Timer**
 
-- A timer is started from the task detail, from **My time**, or from the dashboard. While
-  it runs, a timer bar is visible on every screen: task, project, elapsed time, and a stop
-  button.
-- Stopping opens the review described in section 5.5. The freelancer can shorten the run
-  (a later start or an earlier end) but not extend it, must add a description, and can
-  save or discard. Work done before the timer was started is added as a manual entry.
+- A timer is started from the task detail, from **My time**, or from the dashboard, and
+  only from a computer. The start asks the browser to share the entire screen. Until that
+  share is in place, the timer does not start. On a phone the control says to use a
+  computer. While it runs, a timer bar is visible on every screen: task, project, active
+  elapsed time, and a stop button. When sharing stops, the bar shows Paused and a
+  continue control, which asks for the entire screen again.
+- The first screenshot is taken as the timer starts, then one every 10 minutes for as
+  long as the screen stays shared. Screenshots are listed on the task for the assignee
+  and for Admins. A freelancer sees only their own, and not ones they have deleted. An
+  Admin sees every screenshot on the task, including ones the freelancer deleted, marked
+  as deleted.
+- Stopping opens the review described in section 5.5. On a single uninterrupted run the
+  freelancer can shorten it (a later start or an earlier end) but not extend it. A run
+  that was paused shows the active time, which already excludes the gaps. They must add
+  a description, and can save or discard. Discarding the time does not delete the
+  screenshots. Work done before the timer was started is added as a manual entry. Manual
+  entries have no screenshots.
 - If a task stops accepting time while its timer is running — it is put on hold, its
   project is put on hold, it is cancelled, or the person is deactivated — the timer stops
   at that moment and the time is saved as an entry described as "Stopped automatically",
@@ -528,6 +548,7 @@ Every notification appears in the app. Events that need someone to act also send
 | Task reached 100% of its limit               | Assignee and Admins                     | No    |
 | Over-limit time tracked                      | Assignee and Admins                     | No    |
 | New comment                                  | Assignee and Admins                     | No    |
+| Screenshot deleted                           | Admins                                  | Yes   |
 | Month closed                                 | Freelancers with time in that month     | Yes   |
 | Month reopened                               | Freelancers with time in that month     | No    |
 
@@ -542,7 +563,8 @@ Every notification appears in the app. Events that need someone to act also send
 
 Recorded events include: task created, edited, assigned, and every status change; estimate
 submitted, withdrawn, and decided; extra hours requested and decided; timer started,
-stopped, discarded, and stopped automatically; time entry created, edited, and deleted (with the values before and
+stopped, paused, continued, discarded, and stopped automatically; screenshot captured and
+deleted; time entry created, edited, and deleted (with the values before and
 after); comment deleted; project created, edited, and status changed; member added and
 removed; person invited, activated, deactivated, role changed, and profile photo changed; rate
 added or deleted; month closed and reopened; settings changed.
@@ -576,7 +598,8 @@ photo. Freelancers also see their own rate history, read-only.
 | Edit after submission, reassign, hold, resume, cancel    | Yes                                    | No                                |
 | Estimate, submit, withdraw                               | No                                     | Own tasks                         |
 | Decide estimates, extra hours, and acceptance            | Yes                                    | No                                |
-| Track time, request extra hours, mark as Done            | No                                     | Own tasks                         |
+| Track time, request extra hours, mark as Done            | No                                     | Own tasks, from a computer        |
+| See timer screenshots                                    | Every task                             | Own tasks, except shots they deleted |
 | Comment                                                  | Yes                                    | Own tasks                         |
 | See rates and amounts                                    | Everyone's                             | Own only                          |
 | Monthly report and CSV                                   | All freelancers                        | Own only                          |

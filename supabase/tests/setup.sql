@@ -65,7 +65,8 @@ begin
 
   alter table public.audit_events disable trigger audit_events_no_truncate;
   truncate public.notifications, public.audit_events, public.month_report_lines,
-           public.month_closures, public.time_entries, public.timers, public.rates,
+           public.month_closures, public.time_entries, public.timer_screenshots,
+           public.timer_segments, public.timers, public.rates,
            public.task_links, public.task_comments, public.extra_hours_requests,
            public.estimate_revisions, public.proposals, public.tasks,
            public.project_members, public.projects, public.invitations, public.profiles;

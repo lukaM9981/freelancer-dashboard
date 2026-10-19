@@ -70,6 +70,8 @@ function single(event: EmailEvent, context: EmailContext): EmailContent {
       return projectStatusChanged(event, context);
     case "month.closed":
       return monthClosed(event, context);
+    case "screenshot.deleted":
+      return screenshotDeleted(event, context);
     default:
       return {
         subject: "An update in Olifant Workboard",
@@ -299,6 +301,16 @@ function monthClosed(event: EmailEvent, context: EmailContext): EmailContent {
     summary: `${label} was closed, so your time for it is final. Your report is the basis for payment.`,
     items,
     button: { label: "View Report", href: context.url(month ? `/reports/${month.slice(0, 7)}` : "/reports") },
+  };
+}
+
+function screenshotDeleted(event: EmailEvent, context: EmailContext): EmailContent {
+  const task = taskName(event, context);
+  return {
+    subject: `Screenshot deleted on ${task}`,
+    heading: "A screenshot was deleted",
+    summary: `${actor(context)} deleted a screenshot on ${task}. The image is still on the task.`,
+    button: { label: "Open Task", href: taskUrl(event, context) },
   };
 }
 

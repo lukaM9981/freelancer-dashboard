@@ -29,8 +29,13 @@ import { type TimerReviewValues, timerReviewSchema } from "@/lib/time/schemas";
 
 type TimerReviewDialogProps = {
   timer: RunningTimer;
-  /** When Stop was pressed, on the server's clock. The run can't end later. */
+  /** When the clock stopped, on the server's clock. The run can't end later. */
   stoppedAt: number;
+  /**
+   * Set when the run was paused and resumed, so there is no single range to edit.
+   * The saved time is the active time already recorded.
+   */
+  activeMs: number | null;
   /** The task to start once this run is saved or discarded. */
   then: TimerTask | null;
   /** Shown after the task name when stopping continues into another step. */
@@ -44,6 +49,7 @@ type TimerReviewDialogProps = {
 export function TimerReviewDialog({
   timer,
   stoppedAt,
+  activeMs,
   then,
   nextStep,
   timeZone,
@@ -59,7 +65,11 @@ export function TimerReviewDialog({
   const initialStart = localParts(run.startedAt, timeZone);
   const initialEnd = localParts(run.stoppedAt, timeZone);
   const spansDays = initialStart.date !== initialEnd.date;
-  const longRun = run.stoppedAt.getTime() - run.startedAt.getTime() > LONG_RUN_MS;
+  const activeMinutes = activeMs == null ? null : Math.round(activeMs / 60_000);
+  const longRun =
+    activeMinutes == null
+      ? run.stoppedAt.getTime() - run.startedAt.getTime() > LONG_RUN_MS
+      : activeMs != null && activeMs > LONG_RUN_MS;
 
   const form = useForm<TimerReviewValues>({
     resolver: zodResolver(timerReviewSchema),
@@ -81,8 +91,8 @@ export function TimerReviewDialog({
   const totalMinutes = segments.reduce((sum, segment) => sum + segment.minutes, 0);
 
   async function onSubmit(values: TimerReviewValues) {
-    const range = resolveRun(values, run);
-    if (!range.ok) {
+    const range = activeMinutes == null ? resolveRun(values, run) : null;
+    if (range && !range.ok) {
       form.setError(range.field, { type: "validate", message: range.message });
       return;
     }
@@ -91,7 +101,11 @@ export function TimerReviewDialog({
       return;
     }
 
-    const result = await stopTimer({ ...stopRange(range, timer.startedAt), description: values.description });
+    const rangeToSave =
+      range && range.ok
+        ? stopRange(range, timer.startedAt)
+        : { startedAt: timer.startedAt, endedAt: new Date(stoppedAt).toISOString() };
+    const result = await stopTimer({ ...rangeToSave, description: values.description });
     if (!result.ok) {
       if (result.code === "timer_not_running") {
         toast.info(result.error);
@@ -134,7 +148,7 @@ export function TimerReviewDialog({
             <DialogHeader>
               <DialogTitle>Discard this run?</DialogTitle>
               <DialogDescription>
-                The timer stops and nothing is saved. The task history records that it was discarded.
+                The time is not saved. Screenshots from this run stay, and an Admin can still see them.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="max-sm:flex-col-reverse max-sm:items-stretch">
@@ -166,12 +180,15 @@ export function TimerReviewDialog({
               <div className="flex items-start gap-2 rounded-sm border border-yellow-300 bg-yellow-50 p-3 text-body-xs">
                 <TriangleAlertIcon aria-hidden className="mt-px size-4 shrink-0 text-yellow-800" />
                 <p>
-                  This timer ran for more than 10 hours. Check when you actually stopped working and
-                  correct the end time if needed.
+                  This timer ran for more than 10 hours.
+                  {activeMinutes == null
+                    ? " Check when you actually stopped working and correct the end time if needed."
+                    : " Confirm the active time before saving."}
                 </p>
               </div>
             ) : null}
 
+            {activeMinutes == null ? (
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-3">
                 {spansDays ? (
@@ -220,13 +237,20 @@ export function TimerReviewDialog({
                 />
               </div>
             </div>
+            ) : (
+              <p className="text-body-sm text-muted-foreground">
+                Pauses are not counted. This is the time the screen was shared.
+              </p>
+            )}
 
             <div className="space-y-1.5 rounded-sm bg-muted px-4 py-3">
               <p className="flex items-baseline justify-between gap-3 text-body-sm">
                 <span className="font-medium">Duration</span>
-                <span className="numeric">{resolved.ok ? formatDuration(totalMinutes) : "\u2014"}</span>
+                <span className="numeric">
+                  {activeMinutes != null ? formatDuration(activeMinutes) : resolved.ok ? formatDuration(totalMinutes) : "\u2014"}
+                </span>
               </p>
-              {resolved.ok && segments.length > 1 ? (
+              {activeMinutes == null && resolved.ok && segments.length > 1 ? (
                 <ul className="space-y-0.5 text-caption text-muted-foreground">
                   {segments.map((segment) => (
                     <li key={segment.workDate} className="flex justify-between gap-3">
@@ -236,15 +260,17 @@ export function TimerReviewDialog({
                   ))}
                 </ul>
               ) : null}
-              {resolved.ok && segments.length > 1 ? (
+              {activeMinutes == null && resolved.ok && segments.length > 1 ? (
                 <p className="text-caption text-muted-foreground">Saved as one entry per day.</p>
               ) : null}
-              {resolved.ok && totalMinutes === 0 ? (
+              {(activeMinutes != null ? activeMinutes === 0 : resolved.ok && totalMinutes === 0) ? (
                 <p className="text-caption text-muted-foreground">Under a minute, so nothing will be saved.</p>
               ) : null}
-              <p className="text-caption text-muted-foreground">
-                You can shorten the run but not extend it. Add earlier work as a manual entry.
-              </p>
+              {activeMinutes == null ? (
+                <p className="text-caption text-muted-foreground">
+                  You can shorten the run but not extend it. Add earlier work as a manual entry.
+                </p>
+              ) : null}
             </div>
 
             <TextareaField

@@ -87,6 +87,7 @@ export type TaskDetail = {
   timerRunning: boolean;
   /** When the running timer on this task started. */
   timerStartedAt: string | null;
+  timerPausedAt: string | null;
   extraHoursPending: boolean;
   revisions: EstimateRevision[];
   extraHours: ExtraHoursRequest[];
@@ -170,7 +171,7 @@ export const getTask = cache(async (taskId: string, viewer: Viewer): Promise<Tas
       .eq("task_id", taskId)
       .order("work_date", { ascending: false })
       .order("created_at", { ascending: false }),
-    supabase.from("timers").select("id, started_at").eq("task_id", taskId).is("stopped_at", null),
+    supabase.from("timers").select("id, started_at, paused_at").eq("task_id", taskId).is("stopped_at", null),
     supabase
       .from("task_comments")
       .select("id, author_id, kind, body, created_at, edited_at, author:profiles!task_comments_author_id_fkey(full_name)")
@@ -262,6 +263,7 @@ export const getTask = cache(async (taskId: string, viewer: Viewer): Promise<Tas
     countedMinutes: task.data.counted_minutes,
     timerRunning: permissionTask.timerRunning,
     timerStartedAt: timers.data?.[0]?.started_at ?? null,
+    timerPausedAt: timers.data?.[0]?.paused_at ?? null,
     extraHoursPending: permissionTask.extraHoursPending,
     revisions: revisionRows,
     extraHours: extraHourRows,

@@ -153,7 +153,7 @@ scripts/
   test-db.ts                        runs the pgTAP tests against the test project (section 16)
   a11y.ts                           serves the test project and runs the axe checks (section 16)
 supabase/
-  migrations/                       0001–0014
+  migrations/                       0001–0015
   tests/                            pgTAP tests (*.test.sql) and their helpers (setup.sql)
 docs/                               PRD.md, DB.md, Tech.md, Design.md
 design-system/                      the original export, reference only
@@ -311,15 +311,22 @@ updated with them; unit tests cover them.
 
 ### 7.3 Timer
 
-- **Source of truth** is the `timers` row; the browser never keeps its own start time.
-  The app layout loads the viewer's running timer (`lib/time/queries.ts`) and passes it,
-  with the server's `now`, to `TimerProvider` (`components/timer/`), which computes the
-  clock offset once per server render and ticks every second. `TimerBar`, the start
-  buttons, and the review dialog read it from there. The clock uses `font-mono numeric` so
-  digits don't shift.
-- **Every device** subscribes to its own timer rows (section 8), so starting on the phone
-  shows the bar on the laptop within a second, and an automatic stop (hold, cancel,
-  deactivation) removes the bar everywhere and shows a toast with the reason.
+- **Source of truth** is the `timers` row plus its `timer_segments`. The browser never
+  keeps its own start time. The app layout loads the viewer's open timer
+  (`lib/time/queries.ts`) and passes it, with the server's `now`, to `TimerProvider`
+  (`components/timer/`), which computes the clock offset once per server render and ticks
+  every second only while a segment is open. Active time is the closed segments plus the
+  open one. `TimerBar`, the start buttons, and the review dialog read it from there. The
+  clock uses `font-mono numeric` so digits don't shift.
+- **Entire screen.** Start and continue call `getDisplayMedia` and accept only
+  `displaySurface === "monitor"`. The database cannot see the display, so this gate is
+  the client. A phone (no hover, coarse pointer) does not get the picker. The sharing
+  tab uploads a JPEG at once and every 10 minutes (`lib/time/active-time.ts`), and sends
+  a heartbeat every 15 seconds. When the share ends, or the heartbeat is older than 45
+  seconds, `pause_timer` closes the segment. Closing the tab calls `POST /api/timer/pause`.
+- **Every device** subscribes to its own timer rows (section 8). A pause or an automatic
+  stop (hold, cancel, deactivation) updates the bar everywhere. An automatic stop shows
+  a toast with the reason. Only the computer that is sharing can resume.
 - **Starting while a timer runs**: `start_timer` refuses with `timer_already_running`, so the
   UI first opens the review dialog for the running timer, then starts the new one.
 - **Review dialog** (on stop): start and end as time inputs in the organization's time

@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
+import { installFakeScreenShare } from "../playwright/fake-screen";
 import { SEEDED_DESCRIPTION, seedLastMonth } from "./seed-last-month";
 
 /**
@@ -31,6 +32,8 @@ function required(name: string): string {
 test("bootstrap through a closed month and a CSV", async ({ browser }) => {
   const admin = await browser.newContext();
   const freelancer = await browser.newContext();
+  await installFakeScreenShare(admin);
+  await installFakeScreenShare(freelancer);
   const adminPage = await admin.newPage();
   const freelancerPage = await freelancer.newPage();
 
@@ -121,7 +124,9 @@ test("bootstrap through a closed month and a CSV", async ({ browser }) => {
   await addTime.getByLabel("What did you work on?").fill("Layout past the ceiling.");
   await addTime.getByRole("button", { name: "Add Time" }).click();
   await expect(freelancerPage.getByText("Time added.")).toBeVisible();
-  await expect(freelancerPage.locator("span.numeric", { hasText: /^\d+m over limit$/ })).toBeVisible();
+  await expect(
+    freelancerPage.getByRole("row", { name: /Layout past the ceiling/ }).getByText(/^\d+m$/),
+  ).toBeVisible();
 
   await freelancerPage.getByRole("button", { name: "Request Extra Hours" }).first().click();
   const extra = freelancerPage.getByRole("dialog");
@@ -137,7 +142,9 @@ test("bootstrap through a closed month and a CSV", async ({ browser }) => {
   await expect(adminPage.getByText("Approved 1h of extra hours.")).toBeVisible();
 
   await freelancerPage.goto(homepageUrl);
-  await expect(freelancerPage.locator("span.numeric", { hasText: /^\d+m over limit$/ })).toHaveCount(0);
+  await expect(
+    freelancerPage.getByRole("row", { name: /Layout past the ceiling/ }).getByText(/^\d+m$/),
+  ).toHaveCount(0);
   await freelancerPage.getByRole("button", { name: "Mark Done", exact: true }).click();
   const done = freelancerPage.getByRole("dialog");
   await done.getByLabel("Comment").fill("Ready for review.");

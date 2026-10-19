@@ -84,6 +84,13 @@ begin
     p_name || ' sees links on own tasks only');
   return next ok(not exists (select 1 from public.timers where user_id <> p_me),
     p_name || ' sees only own timers');
+  return next ok(not exists (
+      select 1 from public.timer_segments s
+        join public.timers t on t.id = s.timer_id
+       where t.user_id <> p_me),
+    p_name || ' sees only own timer segments');
+  return next ok(not exists (select 1 from public.timer_screenshots where user_id <> p_me and deleted_at is null),
+    p_name || ' sees only own screenshots');
   return next ok(exists (select 1 from public.time_entries)
              and not exists (select 1 from public.time_entries where user_id <> p_me),
     p_name || ' sees only own time entries');

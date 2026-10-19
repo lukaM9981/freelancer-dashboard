@@ -1,7 +1,7 @@
 # Olifant Workboard — Database Schema
 
 Target: Supabase Postgres **17**. The migrations that create everything below live in
-`supabase/migrations/` (`0001`–`0013`). Product rules come from [PRD.md](./PRD.md); the
+`supabase/migrations/` (`0001`–`0015`). Product rules come from [PRD.md](./PRD.md); the
 surrounding architecture is in [Tech.md](./Tech.md).
 
 The migrations are not a sketch. Migrations `0001`–`0010` were first applied to a clean
@@ -577,8 +577,17 @@ create index timers_user_idx on public.timers (user_id, started_at desc);
 ```
 
 One row per timer run. The partial unique index is the "one running timer per person"
-rule. Stopping updates the row instead of deleting it, which matters for Realtime: Supabase
-applies RLS to inserted and updated rows it broadcasts, but not to deleted ones.
+rule, and a paused timer still holds it (`stopped_at` is null). Stopping updates the row
+instead of deleting it, which matters for Realtime: Supabase applies RLS to inserted and
+updated rows it broadcasts, but not to deleted ones.
+
+`0015` adds `paused_at` and `share_seen_at`. `paused_at` is set only while the clock is
+paused. `share_seen_at` is the last heartbeat from the browser that is sharing the screen.
+`timer_segments` holds each stretch of active time (`ended_at` null on the open one).
+`timer_screenshots` records each capture. `storage_path` is `{user_id}/{id}.jpg` in the
+private `timer-screenshots` bucket. `deleted_at` hides the row from the freelancer; the
+file and the row stay visible to Admins. A freelancer reads their own segments and their
+own screenshots that are not deleted. An Admin reads every row.
 
 ### 4.10 `time_entries`
 
@@ -1345,9 +1354,15 @@ listed in section 10.
 
 | Function | Who | Effect | Events |
 | --- | --- | --- | --- |
-| `start_timer(task_id)` → uuid | Assignee; trackable task in an Active project | One running timer per person | `timer.started` |
-| `stop_timer(started_at, ended_at, description)` → minutes | Owner of the running timer | Saves entries, split per local day | `timer.stopped` |
-| `discard_timer()` | Owner of the running timer | Nothing saved | `timer.discarded` |
+| `start_timer(task_id)` → uuid | Assignee; trackable task in an Active project | One open timer per person, and its first segment. The screen-share gate is in the client, because the database cannot see the display | `timer.started` |
+| `pause_timer()` → timestamptz | Owner of the open timer | Closes the open segment. A heartbeat older than 45 seconds ends the segment at that heartbeat. Already paused returns the same moment | `timer.paused` |
+| `resume_timer()` | Owner of the paused timer; task still trackable | Opens a new segment | `timer.resumed` |
+| `touch_timer_share()` | Owner of the running timer | Sets `share_seen_at`. No history row | — |
+| `stop_timer(started_at, ended_at, description)` → minutes | Owner of the open timer | One uninterrupted segment can be shortened as a single range. After a pause, each segment is saved and the gaps are not counted. Split per local day | `timer.stopped` |
+| `discard_timer()` | Owner of the open timer | Time is not saved. Screenshots stay | `timer.discarded` |
+| `create_timer_screenshot(timer_id)` → path | Owner of the running timer | Inserts the row. The client then uploads the JPEG | `screenshot.captured` |
+| `discard_unstored_screenshot(id)` | Owner, within two minutes, and only when the object is missing | Deletes the empty row. No history row | — |
+| `delete_timer_screenshot(id)` | Owner of a screenshot that is not yet hidden | Sets `deleted_at`. The file stays | `screenshot.deleted` |
 | `add_time_entry(task_id, work_date, minutes, description)` → uuid | Assignee; trackable task | Manual entry | `time_entry.created` |
 | `update_time_entry(entry_id, description, work_date, minutes, started_at, ended_at)` | Author; month open; changing time needs a trackable task, the description alone can be fixed at any status | Manual: date and minutes. Timed: start and end within one local day | `time_entry.updated` |
 | `delete_time_entry(entry_id)` | Author; task still trackable; month open | | `time_entry.deleted` |
@@ -1653,7 +1668,7 @@ each key to user-facing text (Tech.md §12).
 | `estimate_incomplete`, `no_tasks`, `no_decisions`, `invalid_decision`, `nothing_pending`, `revision_already_decided`, `comment_required` | Proposal and decision rules |
 | `extra_hours_pending`, `extra_hours_already_decided` | One open request per task |
 | `task_has_time`, `task_was_submitted` | Reassigning or deleting is no longer possible |
-| `timer_already_running`, `timer_not_running`, `timer_range_invalid`, `timer_running_on_task` | Timer rules |
+| `timer_already_running`, `timer_not_running`, `timer_not_paused`, `timer_range_invalid`, `timer_running_on_task`, `screenshot_not_found` | Timer and screenshot rules |
 | `work_date_in_future`, `work_date_before_approval`, `month_closed`, `daily_limit_exceeded`, `entry_spans_midnight` | Time entry rules |
 | `month_not_ended`, `earlier_month_open`, `timer_running_in_month`, `open_extra_hours_request`, `missing_rate`, `month_already_closed`, `month_not_latest_closed` | Month close and reopen |
 | `rate_in_closed_month`, `rate_not_deletable` | Rate rules |
@@ -1733,6 +1748,7 @@ supabase/migrations/
   0012_audit_log.sql               audit_log view for the Admin audit log
   0013_view_privileges.sql         views: nothing for anon, SELECT only for authenticated
   0014_profile_avatars.sql         profiles.avatar_path, set_my_avatar, private avatars bucket
+  0015_timer_screenshots.sql       timer segments, pause and resume, screenshot rows, private bucket
 supabase/tests/
   setup.sql                        pgTAP, the tests schema helpers, tests.reset_data()
   10_scenarios.test.sql, 20_more.test.sql,

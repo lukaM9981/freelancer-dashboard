@@ -9,6 +9,12 @@ const description = z
 export const startTimerSchema = z.object({ taskId: z.uuid("This task doesn't exist.") });
 export type StartTimerInput = z.infer<typeof startTimerSchema>;
 
+export const timerIdSchema = z.object({ timerId: z.uuid("This timer doesn't exist.") });
+export type TimerIdInput = z.infer<typeof timerIdSchema>;
+
+export const screenshotIdSchema = z.object({ id: z.uuid("This screenshot doesn't exist.") });
+export type ScreenshotIdInput = z.infer<typeof screenshotIdSchema>;
+
 export const stopTimerSchema = z
   .object({
     startedAt: z.iso.datetime({ offset: true, message: "Enter a valid start time." }),

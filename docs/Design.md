@@ -431,7 +431,14 @@ and the stop control is 44px, so it is comfortable to tap; from `sm` the bar is 
 and the stop control is the 32px icon button. From left to right: an 8px
 `bg-primary` dot (static, it does not pulse), the project as an eyebrow in
 `text-neutral-300`, the task title (truncated), the elapsed time in `font-mono numeric`,
-and a primary icon button with a `square` icon labelled "Stop timer".
+and a primary icon button with a `square` icon labelled "Stop timer". While paused, the
+dot is `bg-neutral-400`, the eyebrow reads "Paused", the region is labelled "Paused timer",
+and an outline `play` button labelled "Continue timer" sits before Stop.
+
+**Screenshots** on the task detail are a grid of bordered cards (`rounded-lg border
+border-border`), the image at 16:9, and the capture time in `text-caption`. The
+freelancer's Delete asks for confirmation. An Admin sees a deleted shot with the caption
+"Deleted by the freelancer" and no delete button.
 
 **After ten hours** a `text-primary` caption "Running over 10h" with `triangle-alert`
 appears in the bar.

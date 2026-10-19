@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { installFakeScreenShare } from "../playwright/fake-screen";
 
 type Routes = {
   projectId: string;
@@ -20,6 +21,10 @@ function loadRoutes(): Routes {
 }
 
 const routes = loadRoutes();
+
+test.beforeEach(async ({ page }) => {
+  await installFakeScreenShare(page);
+});
 
 const publicScreens = [
   { name: "Sign in", path: "/login" },

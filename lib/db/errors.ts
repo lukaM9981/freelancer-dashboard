@@ -46,6 +46,8 @@ export const ERROR_MESSAGES = {
   project_not_active: "The project is on hold or archived, so no time can be tracked on it.",
   timer_already_running: "A timer is already running. Stop it before starting another one.",
   timer_not_running: "This timer has already stopped.",
+  timer_not_paused: "This timer is already running.",
+  screenshot_not_found: "This screenshot was already deleted.",
   timer_range_invalid:
     "A run can be shortened but not extended. Add work done before the timer started as a manual entry.",
   timer_running_on_task: "The timer is still running on this task. Stop it first.",

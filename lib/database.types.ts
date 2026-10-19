@@ -1019,11 +1019,100 @@ export type Database = {
           },
         ]
       }
+      timer_screenshots: {
+        Row: {
+          captured_at: string
+          created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+          id: string
+          storage_path: string
+          task_id: string
+          timer_id: string
+          user_id: string
+        }
+        Insert: {
+          captured_at?: string
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          id?: string
+          storage_path: string
+          task_id: string
+          timer_id: string
+          user_id: string
+        }
+        Update: {
+          captured_at?: string
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          id?: string
+          storage_path?: string
+          task_id?: string
+          timer_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "timer_screenshots_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timer_screenshots_timer_id_fkey"
+            columns: ["timer_id"]
+            isOneToOne: false
+            referencedRelation: "timers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timer_screenshots_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      timer_segments: {
+        Row: {
+          ended_at: string | null
+          id: string
+          started_at: string
+          timer_id: string
+        }
+        Insert: {
+          ended_at?: string | null
+          id?: string
+          started_at: string
+          timer_id: string
+        }
+        Update: {
+          ended_at?: string | null
+          id?: string
+          started_at?: string
+          timer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "timer_segments_timer_id_fkey"
+            columns: ["timer_id"]
+            isOneToOne: false
+            referencedRelation: "timers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       timers: {
         Row: {
           auto_reason: string | null
           id: string
           outcome: string | null
+          paused_at: string | null
+          share_seen_at: string | null
           started_at: string
           stopped_at: string | null
           task_id: string
@@ -1033,6 +1122,8 @@ export type Database = {
           auto_reason?: string | null
           id?: string
           outcome?: string | null
+          paused_at?: string | null
+          share_seen_at?: string | null
           started_at?: string
           stopped_at?: string | null
           task_id: string
@@ -1042,6 +1133,8 @@ export type Database = {
           auto_reason?: string | null
           id?: string
           outcome?: string | null
+          paused_at?: string | null
+          share_seen_at?: string | null
           started_at?: string
           stopped_at?: string | null
           task_id?: string
@@ -1329,7 +1422,13 @@ export type Database = {
         }
         Returns: undefined
       }
+      create_timer_screenshot: { Args: { p_timer_id: string }; Returns: string }
+      delete_timer_screenshot: { Args: { p_id: string }; Returns: undefined }
+      discard_unstored_screenshot: { Args: { p_id: string }; Returns: undefined }
+      pause_timer: { Args: never; Returns: string }
+      resume_timer: { Args: never; Returns: undefined }
       start_timer: { Args: { p_task_id: string }; Returns: string }
+      touch_timer_share: { Args: never; Returns: undefined }
       stop_timer: {
         Args: {
           p_description: string

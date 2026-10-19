@@ -12,15 +12,19 @@ import {
   type AddTimeEntryInput,
   type DeleteTimeEntryInput,
   type EntryDescriptionInput,
+  type ScreenshotIdInput,
   type StartTimerInput,
   type StopTimerInput,
+  type TimerIdInput,
   type UpdateManualEntryInput,
   type UpdateTimedEntryInput,
   addTimeEntrySchema,
   deleteTimeEntrySchema,
   entryDescriptionSchema,
+  screenshotIdSchema,
   startTimerSchema,
   stopTimerSchema,
+  timerIdSchema,
   updateManualEntrySchema,
   updateTimedEntrySchema,
 } from "@/lib/time/schemas";
@@ -56,15 +60,71 @@ function dbFailure(error: DbError, fields: Partial<Record<string, string>> = TIM
   return fail(message, fieldErrors, code);
 }
 
-export async function startTimer(input: StartTimerInput): Promise<ActionResult> {
+export async function startTimer(input: StartTimerInput): Promise<ActionResult<{ timerId: string }>> {
   await requireViewer();
   const parsed = startTimerSchema.safeParse(input);
   if (!parsed.success) return invalidInput(parsed.error);
 
   const supabase = createClient(await cookies());
-  const { error } = await supabase.rpc("start_timer", { p_task_id: parsed.data.taskId });
-  if (error) return dbFailure(error);
+  const { data, error } = await supabase.rpc("start_timer", { p_task_id: parsed.data.taskId });
+  if (error || !data) return dbFailure(error);
 
+  revalidateTime();
+  return ok({ timerId: data });
+}
+
+/** Closes the open segment. Already paused returns the same moment. */
+export async function pauseTimer(): Promise<ActionResult<{ pausedAt: string }>> {
+  await requireViewer();
+  const supabase = createClient(await cookies());
+  const { data, error } = await supabase.rpc("pause_timer");
+  if (error || !data) return dbFailure(error);
+  revalidateTime();
+  return ok({ pausedAt: data });
+}
+
+export async function resumeTimer(): Promise<ActionResult> {
+  await requireViewer();
+  const supabase = createClient(await cookies());
+  const { error } = await supabase.rpc("resume_timer");
+  if (error) return dbFailure(error);
+  revalidateTime();
+  return ok();
+}
+
+export async function touchTimerShare(): Promise<void> {
+  await requireViewer();
+  const supabase = createClient(await cookies());
+  await supabase.rpc("touch_timer_share");
+}
+
+export async function createTimerScreenshot(input: TimerIdInput): Promise<ActionResult<{ path: string }>> {
+  await requireViewer();
+  const parsed = timerIdSchema.safeParse(input);
+  if (!parsed.success) return invalidInput(parsed.error);
+
+  const supabase = createClient(await cookies());
+  const { data, error } = await supabase.rpc("create_timer_screenshot", { p_timer_id: parsed.data.timerId });
+  if (error || !data) return dbFailure(error);
+  return ok({ path: data });
+}
+
+export async function discardUnstoredScreenshot(input: ScreenshotIdInput): Promise<void> {
+  await requireViewer();
+  const parsed = screenshotIdSchema.safeParse(input);
+  if (!parsed.success) return;
+  const supabase = createClient(await cookies());
+  await supabase.rpc("discard_unstored_screenshot", { p_id: parsed.data.id });
+}
+
+export async function deleteTimerScreenshot(input: ScreenshotIdInput): Promise<ActionResult> {
+  await requireViewer();
+  const parsed = screenshotIdSchema.safeParse(input);
+  if (!parsed.success) return invalidInput(parsed.error);
+
+  const supabase = createClient(await cookies());
+  const { error } = await supabase.rpc("delete_timer_screenshot", { p_id: parsed.data.id });
+  if (error) return dbFailure(error, {});
   revalidateTime();
   return ok();
 }

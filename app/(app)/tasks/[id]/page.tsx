@@ -13,6 +13,7 @@ import { AddTimeDialog } from "@/components/time/add-time-dialog";
 import { EntrySource, OverLimit } from "@/components/time/entry-source";
 import { TimeEntryActions } from "@/components/time/time-entry-actions";
 import { RunningTimerBadge } from "@/components/timer/running-timer-badge";
+import { TaskScreenshots } from "@/components/timer/task-screenshots";
 import { StartTimerButton } from "@/components/timer/start-timer-button";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -25,6 +26,8 @@ import {
 } from "@/components/ui/table";
 import { type Viewer, getViewer, requireViewer } from "@/lib/auth/queries";
 import { formatCalendarDate, formatDateTime, formatDuration, formatEstimateRange } from "@/lib/format";
+import { getOrganizationSettings } from "@/lib/settings/queries";
+import { listTaskScreenshots } from "@/lib/time/screenshots";
 import { canChangeComment } from "@/lib/tasks/permissions";
 import { type TaskDetail, getTask, listAssigneeOptions } from "@/lib/tasks/queries";
 import { cn } from "@/lib/utils";
@@ -43,6 +46,10 @@ export default async function TaskPage({ params }: TaskPageProps) {
   const { id } = await params;
   const task = await getTask(id, viewer);
   if (!task) notFound();
+  const [screenshots, settings] = await Promise.all([
+    listTaskScreenshots(task.id, viewer),
+    getOrganizationSettings(),
+  ]);
 
   const isAdmin = viewer.role === "admin";
   const { actions } = task;
@@ -157,11 +164,18 @@ export default async function TaskPage({ params }: TaskPageProps) {
             </span>
           ) : null}
           {isAdmin && task.timerStartedAt ? (
-            <RunningTimerBadge
-              startedAt={task.timerStartedAt}
-              serverNow={new Date().toISOString()}
-              personName={task.assigneeName}
-            />
+            task.timerPausedAt ? (
+              <span className="inline-flex h-7 items-center gap-2 rounded-full bg-secondary px-3 text-body-xs text-secondary-foreground">
+                <span className="size-2 shrink-0 rounded-full bg-neutral-400" aria-hidden="true" />
+                Timer paused{task.assigneeName ? ` · ${task.assigneeName}` : ""}
+              </span>
+            ) : (
+              <RunningTimerBadge
+                startedAt={task.timerStartedAt}
+                serverNow={new Date().toISOString()}
+                personName={task.assigneeName}
+              />
+            )
           ) : null}
         </div>
         <StatusHint task={task} viewer={viewer} />
@@ -208,6 +222,12 @@ export default async function TaskPage({ params }: TaskPageProps) {
           <h2 className="text-heading-xs">Time entries</h2>
           <TimeEntries task={task} />
         </section>
+
+        <TaskScreenshots
+          shots={screenshots}
+          timeZone={settings.timeZone}
+          canDelete={!isAdmin && task.assigneeId === viewer.id}
+        />
 
         <section className="space-y-4">
           <h2 className="text-heading-xs">Comments</h2>

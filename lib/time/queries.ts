@@ -15,6 +15,15 @@ export type RunningTimer = {
   projectId: string;
   projectName: string;
   startedAt: string;
+  /** Set while the clock is stopped between screen shares. */
+  pausedAt: string | null;
+  /** Last time the sharing tab checked in. Null before the first heartbeat on an old row. */
+  shareSeenAt: string | null;
+  /** Closed segments only, in milliseconds. The open segment is added on the client. */
+  accumulatedMs: number;
+  /** Start of the open segment. Null while paused. */
+  segmentStartedAt: string | null;
+  segmentCount: number;
 };
 
 type TaskEmbed = { title: string; project_id: string; project: { name: string } | { name: string }[] | null } | null;
@@ -33,13 +42,26 @@ export const getRunningTimer = cache(async (viewer: Viewer): Promise<RunningTime
   const { data, error } = await supabase
     .from("timers")
     .select(
-      "id, task_id, started_at, task:tasks!timers_task_id_fkey(title, project_id, project:projects!tasks_project_id_fkey(name))",
+      "id, task_id, started_at, paused_at, share_seen_at, task:tasks!timers_task_id_fkey(title, project_id, project:projects!tasks_project_id_fkey(name))",
     )
     .eq("user_id", viewer.id)
     .is("stopped_at", null)
     .maybeSingle();
   if (error) throw new Error(`Timer lookup failed: ${error.message}`);
   if (!data) return null;
+
+  const { data: segments, error: segmentError } = await supabase
+    .from("timer_segments")
+    .select("started_at, ended_at")
+    .eq("timer_id", data.id);
+  if (segmentError) throw new Error(`Timer lookup failed: ${segmentError.message}`);
+
+  const rows = segments ?? [];
+  const open = rows.find((segment) => segment.ended_at == null);
+  const accumulatedMs = rows.reduce((sum, segment) => {
+    if (!segment.ended_at) return sum;
+    return sum + Math.max(0, Date.parse(segment.ended_at) - Date.parse(segment.started_at));
+  }, 0);
 
   const task = embedded<NonNullable<TaskEmbed>>(data.task);
   return {
@@ -49,6 +71,11 @@ export const getRunningTimer = cache(async (viewer: Viewer): Promise<RunningTime
     projectId: task?.project_id ?? "",
     projectName: embedded<{ name: string }>(task?.project)?.name ?? "Project",
     startedAt: data.started_at,
+    pausedAt: data.paused_at,
+    shareSeenAt: data.share_seen_at,
+    accumulatedMs,
+    segmentStartedAt: open?.started_at ?? null,
+    segmentCount: rows.length,
   };
 });
 
