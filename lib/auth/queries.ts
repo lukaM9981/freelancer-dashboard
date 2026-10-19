@@ -3,6 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { signAvatarPath } from "@/lib/avatars";
 import { createClient } from "@/utils/supabase/server";
 import { HOME_PATH, LOGIN_PATH } from "@/lib/auth/routes";
 
@@ -13,6 +14,8 @@ export type Viewer = {
   email: string;
   fullName: string;
   role: Role;
+  /** Signed URL of the person's own photo, or null when they have not uploaded one. */
+  avatarUrl: string | null;
 };
 
 /**
@@ -29,7 +32,7 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
   // RLS returns no row for a deactivated profile (app.viewer_id(), DB.md §2).
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("id, email, full_name, role, status")
+    .select("id, email, full_name, role, status, avatar_path")
     .eq("id", userId)
     .maybeSingle();
 
@@ -44,6 +47,7 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
     email: profile.email,
     fullName: profile.full_name,
     role: profile.role as Role,
+    avatarUrl: await signAvatarPath(supabase, profile.avatar_path),
   };
 });
 

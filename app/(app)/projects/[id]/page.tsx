@@ -74,7 +74,7 @@ export default async function ProjectPage({ params, searchParams }: ProjectPageP
     !isAdmin && !archived && project.tasks.some((task) => task.status === "draft" || task.status === "changes_requested");
   const freelancerActions =
     newTaskButton || canPropose ? (
-      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap lg:justify-end">
+      <div className="contents">
         {canPropose ? (
           <Link href={`/proposals/new?project=${project.id}`} className={buttonVariants({ variant: "secondary" })}>
             Submit Proposal
@@ -110,7 +110,7 @@ export default async function ProjectPage({ params, searchParams }: ProjectPageP
           title={project.name}
           action={
             isAdmin ? (
-              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap lg:justify-end">
+              <div className="contents">
                 {newTaskButton}
                 {archived ? null : (
                   <ProjectDialog

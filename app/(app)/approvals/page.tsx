@@ -56,7 +56,7 @@ function QueueCard({ item, timeZone }: { item: QueueItem; timeZone: string }) {
         </p>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-3">
-        <PersonAvatar name={item.personName} />
+        <PersonAvatar name={item.personName} src={item.avatarUrl} />
         <span className="text-body-sm font-bold">{item.personName}</span>
         <QueueKindBadge item={item} className="ml-auto" />
       </div>

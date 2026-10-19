@@ -1,12 +1,10 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/layout/page-header";
 import { PersonFilter } from "@/components/reports/person-filter";
 import { StatCard } from "@/components/stat-card";
-import { StatusBadge } from "@/components/status-badge";
 import { OverLimit } from "@/components/time/entry-source";
 import { MonthNav } from "@/components/time/month-nav";
 import {
@@ -66,18 +64,6 @@ export async function MonthlyReport({
             currentMonth={report.currentMonth}
           />
         ) : null}
-      </div>
-
-      <div className="space-y-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <StatusBadge kind="month" status={report.closed ? "closed" : "open"} />
-          {report.closed ? null : <Badge variant="outline">Not final</Badge>}
-        </div>
-        <p className="text-body-sm text-muted-foreground">
-          {report.closed
-            ? "These amounts are frozen."
-            : "This is a live preview. Amounts freeze when the month is closed."}
-        </p>
       </div>
 
       {report.sections.length === 0 ? (

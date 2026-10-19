@@ -99,12 +99,13 @@ the four `meter-*` colours (§5.2).
 | ------------------------------------------- | ------ | ------------------------------------------------------- |
 | Ink on page                                 | 18.2:1 | Body text                                               |
 | neutral-500 on page / white / neutral-100   | 5.5 / 5.6 / 4.9:1 | `muted-foreground` is safe for secondary text |
-| neutral-400 on page                         | 2.8:1  | Placeholders and disabled text only                     |
+| neutral-400 on page                         | 2.8:1  | Placeholders and disabled text only. A select's empty value is real text, so it uses neutral-500 |
 | yellow-700 on page (design system link)     | 4.3:1  | Fails 4.5:1 — links use **yellow-800** (7.9:1) instead  |
 | Ink on yellow-400                           | 12.6:1 | Primary button                                          |
-| White on red-600                            | 4.5:1  | Destructive button                                      |
+| Source red-600 `#E62415` on the page        | 4.49:1 | Fails 4.5:1 — the app's red-600 is `#E32315` (4.6:1 as text, and 4.6:1 for white on it) |
+| White on red-600                            | 4.6:1  | Destructive button                                      |
 | green-700 on green-50                       | 4.0:1  | Fails for small text — success badges use ink text and a green icon |
-| red-600 on red-50                           | 4.4:1  | Fails for small text — error badges use ink text and a red icon |
+| red-600 on red-50                           | 4.46:1 | Still short for small text — error badges use ink text and a red icon |
 | blue-700 on blue-100                        | 5.6:1  | Info badge as designed                                  |
 | yellow-800 on yellow-100                    | 6.8:1  | Brand badge as designed                                 |
 | pine-700 on pine-100                        | 5.8:1  | Pine badge as designed                                  |
@@ -262,7 +263,8 @@ a spinner in place of the label; icon buttons always have an `aria-label` and a 
 **Input, Textarea, Select trigger**: `h-10 rounded-sm border-[1.5px] border-input bg-white
 px-4 text-body-sm placeholder:text-neutral-400 focus-field
 aria-invalid:border-destructive disabled:bg-muted disabled:opacity-60`. Textarea uses
-`py-3` and `min-h-24` instead of a fixed height.
+`py-3` and `min-h-24` instead of a fixed height. A select's empty value is real text, so
+it uses `text-muted-foreground` rather than the placeholder grey (§3.1).
 
 **Label**: above the field, `text-body-xs font-medium`. Optionally `text-pine-700` while the
 field has focus (`group-focus-within:`), as in the design system.
@@ -291,10 +293,12 @@ border for floating cards. Title `h2`/`h3` in `text-heading-xs`. Variants:
 | Default  | `bg-card border border-border`                       | Almost everything                     |
 | Subtle   | `bg-muted` (no border)                               | Wells, secondary information          |
 | Inverse  | `bg-secondary text-secondary-foreground`             | The running timer, rare emphasis      |
-| Brand    | `bg-card ring-[1.5px] ring-inset ring-primary`       | At most one per screen: "Waiting for a decision" on the Admin dashboard |
+| Brand    | `bg-card ring-[1.5px] ring-inset ring-primary`       | At most one per screen. The styleguide shows it; no product screen uses it. |
 
-**StatCard** (custom, `components/stat-card.tsx`): Card default, `p-6 flex flex-col gap-2`.
-Value `text-display-stat font-black numeric tracking-tight`; label `text-body-sm
+**StatCard** (custom, `components/stat-card.tsx`): Card default, `@container min-w-0 p-4
+sm:p-6 flex flex-col gap-2`. The value is `font-black numeric tracking-tight` at
+`clamp(1.625rem, 28cqw, 3rem)` so a two-up row still fits at 360px, and reaches the
+`text-display-stat` size (3rem) once the card is wide enough. Label `text-body-sm
 text-muted-foreground`; optional trend `text-caption` with a `trending-up`/`trending-down`
 icon. Money stat cards show one value per currency, stacked.
 
@@ -325,8 +329,10 @@ noted in §3.1. Task statuses use `StatusBadge` (§5.1).
 **Tag**: pill chip, `bg-white ring-1 ring-inset ring-border px-3 py-1 text-body-xs
 font-medium`, optional remove button.
 
-**Avatar**: circle, initials in `bg-pine-200 text-pine-800 font-bold`; sizes 24/32/40/56/72.
-Only ever shown to Admins for other people (freelancers never see each other).
+**Avatar**: circle; the person's uploaded photo, or initials in `bg-pine-200 text-pine-800
+font-bold` when they have none or the image fails. Sizes 24/32/40/56/72. A person always
+sees their own. Another person's avatar is only ever shown to Admins (freelancers never
+see each other).
 
 **Tabs**: underline style, not shadcn's segmented default. List `border-b border-border
 gap-1`; trigger `px-4 py-2.5 text-body-xs font-medium text-muted-foreground -mb-px
@@ -336,7 +342,9 @@ border-primary`.
 **Table**: header cells use the `eyebrow` utility, `h-10`, `border-b border-border`; body
 rows `h-12 border-b border-border text-body-xs hover:bg-muted/50`; numeric columns
 right-aligned with `numeric`; the first column `font-medium`. Below `md`, tables turn into
-stacked list rows (one card-like row per record) instead of scrolling sideways.
+stacked list rows (one card-like row per record) instead of scrolling sideways. Each cell's
+label is a real text element, hidden from `md` up, so a screen reader hears it. From `md`,
+a table that is wider than the page scrolls inside its own container.
 
 **Skeleton**: static `bg-muted rounded-sm` blocks, no shimmer.
 
@@ -418,7 +426,9 @@ dates and decimal hours.
 
 **Timer bar** (visible on every screen while a timer runs): in the top bar on desktop,
 fixed above the bottom edge on phones. `bg-secondary text-secondary-foreground
-rounded-full h-10 pl-4 pr-1 flex items-center gap-3 shadow-md`. From left to right: an 8px
+rounded-full pl-4 pr-1 flex items-center gap-3 shadow-md`. On phones the bar is `h-14`
+and the stop control is 44px, so it is comfortable to tap; from `sm` the bar is `h-10`
+and the stop control is the 32px icon button. From left to right: an 8px
 `bg-primary` dot (static, it does not pulse), the project as an eyebrow in
 `text-neutral-300`, the task title (truncated), the elapsed time in `font-mono numeric`,
 and a primary icon button with a `square` icon labelled "Stop timer".
@@ -427,8 +437,9 @@ and a primary icon button with a `square` icon labelled "Stop timer".
 appears in the bar.
 
 **Starting**: tertiary icon buttons with a `play` icon labelled "Start timer" on task rows,
-the task detail, My time, and the freelancer dashboard. On the task detail, the start
-button is the page's primary action.
+the task detail, My time, and the freelancer dashboard. Those icon buttons are 44px below
+`sm` and 32px from `sm`. On the task detail, the start button is the page's primary action
+(a labelled button, already a comfortable height).
 
 **Review dialog** (on stop): task and project, start and end time (editable), duration,
 required description, then "Save Time" (primary) and "Discard" (ghost, with a confirm).
@@ -443,13 +454,16 @@ clock itself is not announced.
 
 - **Sidebar** (from `lg`): logo; Dashboard, Approvals (Admin, count badge), Projects, My
   time (freelancers; their own entries), Reports, then for Admins Months, People, Audit
-  log, Settings; the profile menu at the bottom.
+  log, Settings; the profile menu at the bottom. The panel is an `aside` named Sidebar.
 - **Top bar**: menu button (below `lg`), the timer bar, the notification bell (ghost icon
   button with a brand count badge).
 - **Page header**: an `eyebrow` with the context (for example the project name), the `h1`,
-  and at most one primary action on the right. On phones the action moves under the title,
-  full width.
+  and at most one primary action on the right. Below `sm` every header action, including a
+  link styled as a button, stacks full width under the title. From `sm` the actions sit in
+  a row at their natural width and wrap.
 - **Content**: `mx-auto max-w-content`, sections `space-y-8`, cards in grids with `gap-6`.
+  That block is the only `main`. The inset around the top bar and the content is a `div`,
+  so the shell does not nest two main landmarks.
 
 ### 5.6 Dashboards and charts
 
@@ -479,8 +493,9 @@ primary on top. Validate on submit, then on change. Estimates are two duration i
 The inbox lists proposals as cards: the freelancer's avatar and name, the project as an
 eyebrow, item count, the total range, the cost range, and the age. The proposal detail is a
 table of items, each with tertiary icon buttons for approve (`check`), request changes
-(`rotate-ccw`), and reject (`x`). "Approve All Remaining" is the page's single primary
-action. Rejecting and requesting changes open a dialog with a required comment.
+(`rotate-ccw`), and reject (`x`). Those three are 44px below `sm` and 32px from `sm`.
+"Approve All Remaining" is the page's single primary action. Rejecting and requesting
+changes open a dialog with a required comment.
 
 ### 5.9 Empty, loading, and error states
 

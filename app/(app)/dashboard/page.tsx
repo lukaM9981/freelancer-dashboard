@@ -15,7 +15,7 @@ export default async function DashboardPage() {
     return (
       <div className="space-y-8">
         <PageHeader eyebrow="Admin" title="Dashboard" />
-        <AdminDashboard data={data} serverNow={new Date().toISOString()} />
+        <AdminDashboard data={data} />
       </div>
     );
   }

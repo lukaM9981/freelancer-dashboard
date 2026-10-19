@@ -12,7 +12,7 @@ export function PageHeader({ eyebrow, title, action }: PageHeaderProps) {
         <h1 className="text-heading-md lg:text-heading-lg">{title}</h1>
       </div>
       {action ? (
-        <div className="w-full lg:w-auto [&_[data-slot=button]]:w-full lg:[&_[data-slot=button]]:w-auto">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:max-w-full sm:flex-row sm:flex-wrap sm:items-center sm:justify-end [&_a]:w-full sm:[&_a]:w-auto [&_[data-slot=button]]:w-full sm:[&_[data-slot=button]]:w-auto">
           {action}
         </div>
       ) : null}

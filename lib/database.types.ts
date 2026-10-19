@@ -526,6 +526,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_path: string | null
           created_at: string
           deactivated_at: string | null
           email: string
@@ -536,6 +537,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          avatar_path?: string | null
           created_at?: string
           deactivated_at?: string | null
           email: string
@@ -546,6 +548,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          avatar_path?: string | null
           created_at?: string
           deactivated_at?: string | null
           email?: string
@@ -1308,6 +1311,7 @@ export type Database = {
         Args: { p_invitation_id: string }
         Returns: undefined
       }
+      set_my_avatar: { Args: { p_path: string | null }; Returns: undefined }
       set_person_role: {
         Args: { p_role: string; p_user_id: string }
         Returns: undefined

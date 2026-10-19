@@ -67,8 +67,6 @@ export type TaskComment = {
   editedAt: string | null;
 };
 
-export type TaskLink = { id: string; url: string; label: string | null };
-
 export type TaskHistoryEntry = { id: number; occurredAt: string } & HistoryLine;
 
 export type TaskDetail = {
@@ -85,10 +83,7 @@ export type TaskDetail = {
   /** The working estimate, edited while Draft or Changes requested. */
   estimate: Estimate | null;
   approvedEstimate: Estimate | null;
-  limitMinutes: number | null;
-  ceilingMinutes: number | null;
   countedMinutes: number;
-  overLimitMinutes: number;
   timerRunning: boolean;
   /** When the running timer on this task started. */
   timerStartedAt: string | null;
@@ -97,7 +92,6 @@ export type TaskDetail = {
   extraHours: ExtraHoursRequest[];
   entries: TaskTimeEntry[];
   comments: TaskComment[];
-  links: TaskLink[];
   history: TaskHistoryEntry[];
   actions: TaskActions;
   timeZone: string;
@@ -141,7 +135,7 @@ export const getTask = cache(async (taskId: string, viewer: Viewer): Promise<Tas
   const task = await supabase
     .from("tasks")
     .select(
-      "id, title, description, status, project_id, assignee_id, created_by, ever_submitted, estimate_min_minutes, estimate_max_minutes, estimate_note, approved_revision_id, limit_minutes, counted_minutes, over_limit_minutes, first_approved_on, project:projects!tasks_project_id_fkey(id, name, status), assignee:profiles!tasks_assignee_id_fkey(full_name)",
+      "id, title, description, status, project_id, assignee_id, created_by, ever_submitted, estimate_min_minutes, estimate_max_minutes, estimate_note, approved_revision_id, counted_minutes, first_approved_on, project:projects!tasks_project_id_fkey(id, name, status), assignee:profiles!tasks_assignee_id_fkey(full_name)",
     )
     .eq("id", taskId)
     .maybeSingle();
@@ -152,9 +146,8 @@ export const getTask = cache(async (taskId: string, viewer: Viewer): Promise<Tas
   }
   if (!task.data || !isTaskStatus(task.data.status)) return null;
 
-  const [settings, progress, revisions, extraHours, entries, timers, comments, links, events, closures] = await Promise.all([
+  const [settings, revisions, extraHours, entries, timers, comments, events, closures] = await Promise.all([
     getOrganizationSettings(),
-    supabase.from("task_progress").select("ceiling_minutes").eq("task_id", taskId).maybeSingle(),
     supabase
       .from("estimate_revisions")
       .select(
@@ -183,7 +176,6 @@ export const getTask = cache(async (taskId: string, viewer: Viewer): Promise<Tas
       .select("id, author_id, kind, body, created_at, edited_at, author:profiles!task_comments_author_id_fkey(full_name)")
       .eq("task_id", taskId)
       .order("created_at"),
-    supabase.from("task_links").select("id, url, label").eq("task_id", taskId).order("created_at"),
     supabase
       .from("audit_events")
       .select("id, occurred_at, event_type, actor_id, subject_user_id, data, actor:profiles!audit_events_actor_id_fkey(full_name)")
@@ -192,7 +184,7 @@ export const getTask = cache(async (taskId: string, viewer: Viewer): Promise<Tas
       .order("id", { ascending: false }),
     supabase.from("month_closures").select("month").order("month", { ascending: false }).limit(1),
   ]);
-  for (const result of [progress, revisions, extraHours, entries, timers, comments, links, events, closures]) {
+  for (const result of [revisions, extraHours, entries, timers, comments, events, closures]) {
     if (result.error) throw new Error(`Task lookup failed: ${result.error.message}`);
   }
 
@@ -267,10 +259,7 @@ export const getTask = cache(async (taskId: string, viewer: Viewer): Promise<Tas
     approvedEstimate: approved
       ? { minMinutes: approved.minMinutes, maxMinutes: approved.maxMinutes, note: approved.note }
       : null,
-    limitMinutes: task.data.limit_minutes,
-    ceilingMinutes: progress.data?.ceiling_minutes ?? null,
     countedMinutes: task.data.counted_minutes,
-    overLimitMinutes: task.data.over_limit_minutes,
     timerRunning: permissionTask.timerRunning,
     timerStartedAt: timers.data?.[0]?.started_at ?? null,
     extraHoursPending: permissionTask.extraHoursPending,
@@ -307,7 +296,6 @@ export const getTask = cache(async (taskId: string, viewer: Viewer): Promise<Tas
       createdAt: row.created_at,
       editedAt: row.edited_at,
     })),
-    links: (links.data ?? []).map((row) => ({ id: row.id, url: row.url, label: row.label })),
     history: (events.data ?? []).map((row) => ({
       id: row.id,
       occurredAt: row.occurred_at,

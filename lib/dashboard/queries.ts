@@ -4,35 +4,25 @@ import { cookies } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 import type { RevisionDecision, TaskStatus } from "@/components/status-badge";
 import type { Viewer } from "@/lib/auth/queries";
+import { signAvatarPaths } from "@/lib/avatars";
 import { ACTIVITY_EVENT_TYPES, activityFeed, type ActivityItem } from "@/lib/dashboard/activity";
-import {
-  estimateVsActual,
-  timeByFreelancer,
-  timeByProject,
-  type DashboardLine,
-  type EstimateVsActual,
-  type TimeBreakdown,
-} from "@/lib/dashboard/figures";
-import { collectRisks, STALLED_MS, type RiskRow, type StalledTask } from "@/lib/dashboard/risks";
+import { timeByFreelancer, timeByProject, type DashboardLine, type TimeBreakdown } from "@/lib/dashboard/figures";
 import { fetchAllRows } from "@/lib/db/all-rows";
 import { formatMonth, isoDateInZone, monthStartInZone } from "@/lib/dates";
 import type { Currency, Money } from "@/lib/money";
 import { monthFigures } from "@/lib/projects/figures";
-import { listApprovalQueue, type QueueItem } from "@/lib/proposals/queries";
+import { listApprovalQueue } from "@/lib/proposals/queries";
 import { reportPath } from "@/lib/reports/paths";
 import { getOrganizationSettings } from "@/lib/settings/queries";
 import { earliestWorkDate } from "@/lib/time/bounds";
 
 type Supabase = ReturnType<typeof createClient>;
 
-const WAITING_SHOWN = 5;
 const ACTIVITY_SHOWN = 25;
 /** Enough rows to fill the feed after decisions from one action are joined. */
 const ACTIVITY_FETCHED = 200;
 const ACTIVITY_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 const PROPOSALS_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
-/** Open work whose limit is still in play (PRD §6.11). */
-const OPEN_STATUSES = ["approved", "in_progress", "on_hold", "done"];
 
 function embedded<T>(value: unknown): T | null {
   if (!value) return null;
@@ -78,24 +68,15 @@ function monthLines(supabase: Supabase, month: string, userId: string | null) {
 // Admin (PRD §6.11)
 // ---------------------------------------------------------------------------
 
-export type TrackingTimer = {
-  id: string;
-  personName: string;
-  taskId: string;
-  taskTitle: string;
-  projectName: string;
-  startedAt: string;
-};
-
 export type AdminDashboard = {
   timeZone: string;
   monthLabel: string;
   defaultCurrency: Currency;
-  waiting: { items: QueueItem[]; total: number };
-  tracking: TrackingTimer[];
+  /** Proposal items, extra-hours requests, and Done tasks (PRD §6.11). The list is Approvals. */
+  waitingTotal: number;
+  /** Running timers, counted when the page loads (PRD §6.11). */
+  trackingNow: number;
   month: MonthTotals & { freelancers: TimeBreakdown[]; projects: TimeBreakdown[] };
-  estimates: EstimateVsActual[];
-  risks: RiskRow[];
   activity: ActivityItem[];
 };
 
@@ -106,28 +87,10 @@ export async function getAdminDashboard(viewer: Viewer): Promise<AdminDashboard>
   const now = new Date();
   const activitySince = new Date(now.getTime() - ACTIVITY_WINDOW_MS).toISOString();
 
-  const [queue, timers, lines, tasks, events] = await Promise.all([
+  const [queue, timers, lines, events] = await Promise.all([
     listApprovalQueue(),
-    supabase
-      .from("timers")
-      .select(
-        "id, task_id, started_at, person:profiles!timers_user_id_fkey(full_name), task:tasks!timers_task_id_fkey(title, project:projects!tasks_project_id_fkey(name))",
-      )
-      .is("stopped_at", null)
-      .order("started_at"),
+    supabase.from("timers").select("id", { count: "exact", head: true }).is("stopped_at", null),
     monthLines(supabase, month, null),
-    fetchAllRows(
-      (from, to) =>
-        supabase
-          .from("tasks")
-          .select(
-            "id, title, status, status_changed_at, limit_minutes, counted_minutes, over_limit_minutes, project_id, project:projects!tasks_project_id_fkey(name), assignee:profiles!tasks_assignee_id_fkey(full_name)",
-          )
-          .in("status", OPEN_STATUSES)
-          .order("id")
-          .range(from, to),
-      "Dashboard failed",
-    ),
     supabase
       .from("audit_events")
       .select("id, occurred_at, txid, event_type, actor_id, subject_user_id, task_id, project_id, data, actor:profiles!audit_events_actor_id_fkey(full_name)")
@@ -149,58 +112,37 @@ export async function getAdminDashboard(viewer: Viewer): Promise<AdminDashboard>
   ];
   const eventTaskIds = [...new Set(eventRows.flatMap((row) => (row.task_id ? [row.task_id] : [])))];
   const eventProjectIds = [...new Set(eventRows.flatMap((row) => (row.project_id ? [row.project_id] : [])))];
-  const runningTaskIds = new Set((timers.data ?? []).map((row) => row.task_id));
-  const stalledSince = new Date(now.getTime() - STALLED_MS).toISOString();
-  const stalledCandidates = tasks.filter(
-    (task) => task.status === "in_progress" && task.status_changed_at < stalledSince && !runningTaskIds.has(task.id),
-  );
-
-  const [people, eventTasks, eventProjects, stalled] = await Promise.all([
-    personIds.length > 0 ? supabase.from("profiles").select("id, full_name").in("id", personIds) : null,
+  const [people, eventTasks, eventProjects] = await Promise.all([
+    personIds.length > 0 ? supabase.from("profiles").select("id, full_name, avatar_path").in("id", personIds) : null,
     eventTaskIds.length > 0 ? supabase.from("tasks").select("id, title").in("id", eventTaskIds) : null,
     eventProjectIds.length > 0 ? supabase.from("projects").select("id, name").in("id", eventProjectIds) : null,
-    stalledTasks(supabase, stalledCandidates, stalledSince),
   ]);
   for (const result of [people, eventTasks, eventProjects]) failed("Dashboard failed", result);
 
-  const names = new Map((people?.data ?? []).map((row) => [row.id, row.full_name]));
+  const peopleRows = people?.data ?? [];
+  const names = new Map(peopleRows.map((row) => [row.id, row.full_name]));
+  const avatarPaths = new Map(peopleRows.map((row) => [row.id, row.avatar_path]));
+  const avatarUrls = await signAvatarPaths(
+    supabase,
+    peopleRows.map((row) => row.avatar_path),
+  );
   const taskTitles = new Map((eventTasks?.data ?? []).map((row) => [row.id, row.title]));
   const projectNames = new Map((eventProjects?.data ?? []).map((row) => [row.id, row.name]));
-
-  const openTasks = tasks.map((task) => ({
-    id: task.id,
-    title: task.title,
-    projectId: task.project_id,
-    projectName: embedded<{ name: string }>(task.project)?.name ?? "Project",
-    assigneeName: embedded<{ full_name: string }>(task.assignee)?.full_name ?? null,
-    limitMinutes: task.limit_minutes,
-    countedMinutes: task.counted_minutes,
-    overLimitMinutes: task.over_limit_minutes,
-  }));
 
   return {
     timeZone: settings.timeZone,
     monthLabel: formatMonth(month),
     defaultCurrency: settings.defaultCurrency,
-    waiting: { items: queue.items.slice(0, WAITING_SHOWN), total: queue.items.length },
-    tracking: (timers.data ?? []).map((row) => {
-      const task = embedded<{ title: string; project: unknown }>(row.task);
-      return {
-        id: row.id,
-        personName: embedded<{ full_name: string }>(row.person)?.full_name ?? "Unknown person",
-        taskId: row.task_id,
-        taskTitle: task?.title ?? "Task",
-        projectName: embedded<{ name: string }>(task?.project)?.name ?? "Project",
-        startedAt: row.started_at,
-      };
-    }),
+    waitingTotal: queue.items.length,
+    trackingNow: timers.count ?? 0,
     month: {
       ...monthTotals(lines),
-      freelancers: timeByFreelancer(lines, names),
+      freelancers: timeByFreelancer(lines, names).map((row) => ({
+        ...row,
+        avatarUrl: avatarUrls.get(avatarPaths.get(row.id) ?? "") ?? null,
+      })),
       projects: timeByProject(lines),
     },
-    estimates: estimateVsActual(openTasks),
-    risks: collectRisks(openTasks, stalled, queue.items, now),
     activity: activityFeed(
       eventRows.map((row) => ({
         id: row.id,
@@ -220,48 +162,6 @@ export async function getAdminDashboard(viewer: Viewer): Promise<AdminDashboard>
       ACTIVITY_SHOWN,
     ),
   };
-}
-
-/**
- * In progress tasks with no entry recorded since `since` (DB.md §11, stalled work),
- * with the moment time was last recorded, or the moment they entered In progress.
- */
-async function stalledTasks(
-  supabase: Supabase,
-  candidates: readonly { id: string; status_changed_at: string }[],
-  since: string,
-): Promise<StalledTask[]> {
-  if (candidates.length === 0) return [];
-  const recent = await fetchAllRows(
-    (from, to) =>
-      supabase
-        .from("time_entries")
-        .select("task_id")
-        .in(
-          "task_id",
-          candidates.map((task) => task.id),
-        )
-        .gte("created_at", since)
-        .order("id")
-        .range(from, to),
-    "Dashboard failed",
-  );
-  const active = new Set(recent.map((row) => row.task_id));
-  const stalled = candidates.filter((task) => !active.has(task.id));
-
-  return Promise.all(
-    stalled.map(async (task) => {
-      const last = await supabase
-        .from("time_entries")
-        .select("created_at")
-        .eq("task_id", task.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      failed("Dashboard failed", last);
-      return { taskId: task.id, lastTrackedAt: last.data?.created_at ?? task.status_changed_at };
-    }),
-  );
 }
 
 // ---------------------------------------------------------------------------

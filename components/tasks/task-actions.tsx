@@ -6,7 +6,6 @@ import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { DurationInput } from "@/components/duration-input";
-import { HoursMeter } from "@/components/hours-meter";
 import { SubmitButton } from "@/components/submit-button";
 import { TextareaField } from "@/components/textarea-field";
 import { Button } from "@/components/ui/button";
@@ -72,9 +71,6 @@ function useTaskActions(): TaskActionsContextValue {
   if (!value) throw new Error("Task actions are only available on the task page.");
   return value;
 }
-
-const requestLinkClass =
-  "rounded-sm font-medium text-link underline-offset-4 hover:underline focus-ring";
 
 /**
  * Lifecycle actions on a task (PRD §5.1, §5.4, §6.6, §6.7). Buttons that the database
@@ -349,34 +345,6 @@ export function ExtraHoursCallout() {
         </div>
       ) : null}
     </section>
-  );
-}
-
-export function TaskHoursMeter({
-  countedMinutes,
-  limitMinutes,
-  ceilingMinutes,
-}: {
-  countedMinutes: number;
-  limitMinutes: number;
-  ceilingMinutes: number;
-}) {
-  const { actions, pendingRequest, open } = useTaskActions();
-
-  return (
-    <HoursMeter
-      countedMinutes={countedMinutes}
-      limitMinutes={limitMinutes}
-      ceilingMinutes={ceilingMinutes}
-      overLimitNote={pendingRequest ? "Extra hours requested" : undefined}
-      requestAction={
-        actions.requestExtraHours ? (
-          <button type="button" className={requestLinkClass} onClick={() => open("request")}>
-            Request Extra Hours
-          </button>
-        ) : undefined
-      }
-    />
   );
 }
 

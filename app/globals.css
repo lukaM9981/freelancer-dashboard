@@ -79,7 +79,8 @@
 
   --color-red-50: #fff9f9;
   --color-red-200: #ffcccc;
-  --color-red-600: #e62415;
+  /* Source #e62415 is 4.49:1 as text on the page. #e32315 clears 4.5:1 (Design.md §3.1). */
+  --color-red-600: #e32315;
 
   --color-blue-100: #cce3ff;
   --color-blue-700: #0052b4;
@@ -358,4 +359,12 @@
 /* Durations, money, counts: digits line up in columns. */
 @utility numeric {
   font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Tailwind's sr-only keeps white-space: nowrap, which can widen the page
+   even when the text is clipped. clip-path keeps it out of the scroll width. */
+@layer base {
+  .sr-only {
+    clip-path: inset(50%);
+  }
 }

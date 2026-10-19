@@ -144,7 +144,7 @@ function AddCommentForm({ taskId }: { taskId: string }) {
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-col gap-3">
       <TextareaField control={form.control} name="body" id="new-comment" label="Add a comment" />
-      <div className="flex justify-end">
+      <div className="flex flex-col gap-3 sm:flex-row sm:justify-end [&_[data-slot=button]]:w-full sm:[&_[data-slot=button]]:w-auto">
         <SubmitButton variant="secondary" pending={form.formState.isSubmitting}>
           Post Comment
         </SubmitButton>

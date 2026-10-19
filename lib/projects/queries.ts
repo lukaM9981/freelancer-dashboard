@@ -16,6 +16,7 @@ import {
   type StatusCount,
 } from "@/lib/projects/figures";
 import type { ProjectStatus } from "@/lib/projects/schemas";
+import { signAvatarPaths } from "@/lib/avatars";
 import { getOrganizationSettings } from "@/lib/settings/queries";
 
 const FINAL_STATUSES: ReadonlySet<string> = new Set(["accepted", "rejected", "cancelled"]);
@@ -48,6 +49,7 @@ export type ProjectMember = {
   email: string;
   status: "active" | "deactivated";
   openTaskCount: number;
+  avatarUrl: string | null;
 };
 
 export type MemberCandidate = { userId: string; fullName: string };
@@ -64,7 +66,7 @@ export type ProjectDetail = {
   candidates: MemberCandidate[] | null;
 };
 
-type ProfileEmbed = { full_name: string; email?: string; status?: string } | null;
+type ProfileEmbed = { full_name: string; email?: string; status?: string; avatar_path?: string | null } | null;
 
 function embeddedProfile(value: unknown): ProfileEmbed {
   if (!value) return null;
@@ -162,7 +164,7 @@ export const getProject = cache(async (projectId: string, viewer: Viewer): Promi
     isAdmin
       ? supabase
           .from("project_members")
-          .select("user_id, member:profiles!project_members_user_id_fkey(full_name, email, status)")
+          .select("user_id, member:profiles!project_members_user_id_fkey(full_name, email, status, avatar_path)")
           .eq("project_id", projectId)
       : null,
     isAdmin
@@ -203,7 +205,12 @@ export const getProject = cache(async (projectId: string, viewer: Viewer): Promi
       openTasks.set(task.assigneeId, (openTasks.get(task.assigneeId) ?? 0) + 1);
     }
 
-    projectMembers = (members?.data ?? [])
+    const memberRows = members?.data ?? [];
+    const avatarUrls = await signAvatarPaths(
+      supabase,
+      memberRows.map((member) => embeddedProfile(member.member)?.avatar_path),
+    );
+    projectMembers = memberRows
       .map((member) => {
         const profile = embeddedProfile(member.member);
         return {
@@ -212,6 +219,7 @@ export const getProject = cache(async (projectId: string, viewer: Viewer): Promi
           email: profile?.email ?? "",
           status: profile?.status === "deactivated" ? ("deactivated" as const) : ("active" as const),
           openTaskCount: openTasks.get(member.user_id) ?? 0,
+          avatarUrl: profile?.avatar_path ? (avatarUrls.get(profile.avatar_path) ?? null) : null,
         };
       })
       .sort((a, b) => a.fullName.localeCompare(b.fullName, "en"));

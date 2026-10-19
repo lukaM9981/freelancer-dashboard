@@ -25,7 +25,7 @@ export default async function ProfilePage() {
     <div className="space-y-8">
       <PageHeader title="Profile" />
       <p className="text-body-sm text-muted-foreground">{viewer.email}</p>
-      <ProfileForms fullName={viewer.fullName} />
+      <ProfileForms fullName={viewer.fullName} avatarUrl={viewer.avatarUrl} />
       {history ? (
         <section className="max-w-xl space-y-4">
           <h2 className="text-heading-xs">Rate history</h2>

@@ -112,7 +112,15 @@ function IconAction({
     <Tooltip>
       <TooltipTrigger
         render={
-          <Button type="button" variant="outline" size="icon-sm" aria-label={label} disabled={disabled} onClick={onClick}>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            className="size-11 sm:size-8"
+            aria-label={label}
+            disabled={disabled}
+            onClick={onClick}
+          >
             {children}
           </Button>
         }

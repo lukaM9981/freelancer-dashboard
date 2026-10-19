@@ -33,6 +33,7 @@ export function StartTimerButton({ task, variant }: { task: TimerTask; variant: 
             type="button"
             variant="outline"
             size="icon-sm"
+            className="size-11 sm:size-8"
             pending={pending}
             aria-label={`${label}: ${task.title}`}
             onClick={onClick}

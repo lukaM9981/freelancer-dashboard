@@ -60,7 +60,7 @@ const NAV: NavItem[] = [
 ];
 
 type AppSidebarProps = {
-  viewer: { fullName: string; email: string; role: "admin" | "freelancer" };
+  viewer: { fullName: string; email: string; role: "admin" | "freelancer"; avatarUrl: string | null };
   /** Admins only: everything waiting in the approvals inbox. */
   approvalsCount?: number;
 };
@@ -123,17 +123,17 @@ export function AppSidebar({ viewer, approvalsCount }: AppSidebarProps) {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="p-3">
-        <ProfileMenu name={viewer.fullName} email={viewer.email} />
+        <ProfileMenu name={viewer.fullName} email={viewer.email} avatarUrl={viewer.avatarUrl} />
       </SidebarFooter>
     </Sidebar>
   );
 }
 
-function ProfileMenu({ name, email }: { name: string; email: string }) {
+function ProfileMenu({ name, email, avatarUrl }: { name: string; email: string; avatarUrl: string | null }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="flex w-full items-center gap-3 rounded-sm px-2 py-2 text-left transition-colors duration-150 ease-brand hover:bg-sidebar-accent focus-ring">
-        <PersonAvatar name={name} />
+        <PersonAvatar name={name} src={avatarUrl} />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-body-xs font-medium">{name}</span>
           <span className="block truncate text-caption text-muted-foreground">{email}</span>

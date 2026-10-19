@@ -12,9 +12,16 @@
 
 # testing
 /coverage
+/test-results/
+/playwright-report/
+/blob-report/
+/a11y/.auth/
+/a11y/routes.json
 
 # next.js
 /.next/
+/.next-a11y/
+/.next-e2e/
 /out/
 
 # production

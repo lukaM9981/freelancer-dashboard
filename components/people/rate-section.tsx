@@ -151,7 +151,7 @@ function RateForm({
           description="A rate dated today or earlier stays. A future rate can be deleted."
         />
       </FieldGroup>
-      <div className="flex justify-end">
+      <div className="flex flex-col gap-3 sm:flex-row sm:justify-end [&_[data-slot=button]]:w-full sm:[&_[data-slot=button]]:w-auto">
         <SubmitButton pending={form.formState.isSubmitting}>Add Rate</SubmitButton>
       </div>
     </form>

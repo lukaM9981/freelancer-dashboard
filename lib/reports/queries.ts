@@ -48,7 +48,6 @@ export type MonthlyReport = {
   month: string;
   currentMonth: string;
   months: { value: string; label: string }[];
-  closed: boolean;
   people: ReportPerson[];
   selectedUserId: string | null;
   sections: ReportSection[];
@@ -99,24 +98,20 @@ export async function getMonthlyReport(
     return { redirectTo: reportPath(month, currentMonth, requestedUser) };
   }
 
-  const [lines, closure] = await Promise.all([
-    fetchAllRows(
-      (from, to) =>
-        supabase
-          .from("report_lines")
-          .select(
-            "user_id, project_name, task_id, task_title, rate_id, hourly_rate, currency, counted_minutes, over_limit_minutes, amount",
-          )
-          .eq("month", month)
-          .order("user_id")
-          .order("task_id")
-          .order("rate_id", { nullsFirst: true })
-          .range(from, to),
-      "Report failed",
-    ),
-    supabase.from("month_closures").select("month").eq("month", month).maybeSingle(),
-  ]);
-  if (closure.error) throw new Error(`Report failed: ${closure.error.message}`);
+  const lines = await fetchAllRows(
+    (from, to) =>
+      supabase
+        .from("report_lines")
+        .select(
+          "user_id, project_name, task_id, task_title, rate_id, hourly_rate, currency, counted_minutes, over_limit_minutes, amount",
+        )
+        .eq("month", month)
+        .order("user_id")
+        .order("task_id")
+        .order("rate_id", { nullsFirst: true })
+        .range(from, to),
+    "Report failed",
+  );
 
   const userIds = [...new Set(lines.flatMap((line) => (line.user_id ? [line.user_id] : [])))];
   const profiles =
@@ -150,7 +145,6 @@ export async function getMonthlyReport(
     months: monthStartsBetween(firstMonth, currentMonth)
       .reverse()
       .map((value) => ({ value, label: formatMonth(value) })),
-    closed: closure.data != null,
     people,
     selectedUserId,
     sections: sectionsFor(visible, names),

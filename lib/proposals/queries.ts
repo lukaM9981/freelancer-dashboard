@@ -9,6 +9,7 @@ import { isoDateInZone } from "@/lib/dates";
 import { currentRate, type DisplayRate, toDisplayRate } from "@/lib/people/rates";
 import { isTaskStatus } from "@/lib/projects/figures";
 import { type CostRange, costRange, type EstimateRange, sumEstimates } from "@/lib/proposals/figures";
+import { signAvatarPaths } from "@/lib/avatars";
 import { getOrganizationSettings } from "@/lib/settings/queries";
 
 type Supabase = ReturnType<typeof createClient>;
@@ -58,6 +59,7 @@ type QueueBase = {
   id: string;
   projectName: string;
   personName: string;
+  avatarUrl: string | null;
   waitingSince: string;
 };
 
@@ -86,7 +88,7 @@ export async function listApprovalQueue(): Promise<{ items: QueueItem[]; timeZon
   const proposerIds = ids((row) => (row.kind === "proposal" ? row.requested_by : null));
 
   const [people, projects, tasks, rates] = await Promise.all([
-    personIds.length > 0 ? supabase.from("profiles").select("id, full_name").in("id", personIds) : null,
+    personIds.length > 0 ? supabase.from("profiles").select("id, full_name, avatar_path").in("id", personIds) : null,
     projectIds.length > 0 ? supabase.from("projects").select("id, name").in("id", projectIds) : null,
     taskIds.length > 0 ? supabase.from("tasks").select("id, title").in("id", taskIds) : null,
     currentRates(supabase, proposerIds, settings.timeZone),
@@ -94,7 +96,10 @@ export async function listApprovalQueue(): Promise<{ items: QueueItem[]; timeZon
   for (const result of [people, projects, tasks]) {
     if (result?.error) throw new Error(`Approvals lookup failed: ${result.error.message}`);
   }
-  const personNames = new Map((people?.data ?? []).map((row) => [row.id, row.full_name]));
+  const personRows = people?.data ?? [];
+  const personNames = new Map(personRows.map((row) => [row.id, row.full_name]));
+  const avatarPaths = new Map(personRows.map((row) => [row.id, row.avatar_path]));
+  const avatarUrls = await signAvatarPaths(supabase, personRows.map((row) => row.avatar_path));
   const projectNames = new Map((projects?.data ?? []).map((row) => [row.id, row.name]));
   const taskTitles = new Map((tasks?.data ?? []).map((row) => [row.id, row.title]));
 
@@ -104,6 +109,7 @@ export async function listApprovalQueue(): Promise<{ items: QueueItem[]; timeZon
       id: row.item_id,
       projectName: (row.project_id && projectNames.get(row.project_id)) || "Project",
       personName: (row.requested_by && personNames.get(row.requested_by)) || "Unknown person",
+      avatarUrl: row.requested_by ? (avatarUrls.get(avatarPaths.get(row.requested_by) ?? "") ?? null) : null,
       waitingSince: row.waiting_since,
     };
     const taskId = row.task_id ?? "";

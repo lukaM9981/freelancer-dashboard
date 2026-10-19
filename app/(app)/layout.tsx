@@ -30,7 +30,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       >
         <SidebarProvider open>
           <AppSidebar
-            viewer={{ fullName: viewer.fullName, email: viewer.email, role: viewer.role }}
+            viewer={{
+              fullName: viewer.fullName,
+              email: viewer.email,
+              role: viewer.role,
+              avatarUrl: viewer.avatarUrl,
+            }}
             approvalsCount={approvalsCount}
           />
           <SidebarInset>

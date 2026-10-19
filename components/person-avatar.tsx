@@ -1,13 +1,16 @@
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 type PersonAvatarProps = {
   name: string;
+  /** Signed URL of the person's photo. Initials show when this is missing or fails to load. */
+  src?: string | null;
   size?: React.ComponentProps<typeof Avatar>["size"];
 };
 
-export function PersonAvatar({ name, size = "sm" }: PersonAvatarProps) {
+export function PersonAvatar({ name, src, size = "sm" }: PersonAvatarProps) {
   return (
     <Avatar size={size}>
+      {src ? <AvatarImage src={src} alt="" /> : null}
       <AvatarFallback>{initials(name)}</AvatarFallback>
     </Avatar>
   );

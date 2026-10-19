@@ -19,8 +19,8 @@
 | 13. Dashboards | Admin and freelancer dashboards | §6.11 | 6–9 h | Done (2026-10-12) |
 | 14. Notifications and email | Bell with live updates, notifications page, Resend emails, outbox, retry job (migration 0011) | §6.12 | 7–10 h | Done (2026-10-12) |
 | 15. Audit log | Admin audit log with filters | §6.13 | 2–4 h | Done (2026-10-13) |
-| 16. Quality pass | Database tests (pgTAP from the scenario checks), responsive and accessibility pass, Playwright smoke test | §10 | 9–13 h | In progress (16a database tests done 2026-10-14; 16b responsive and accessibility, 16c Playwright next) |
-| 17. Demo and deploy | Demo data, Vercel deploy, production Supabase settings, Resend domain | Tech.md §17 | 3–5 h | Not started |
+| 16. Quality pass | Database tests (pgTAP from the scenario checks), responsive and accessibility pass, Playwright smoke test | §10 | 9–13 h | Done (2026-10-15) |
+| 17. Demo and deploy | Demo data, Vercel deploy, production Supabase settings, Resend domain | Tech.md §17 | 3–5 h | In progress |
 | **Total** | | | **89–134 h** | |
 
 ### Notes (built differently from the PRD)
@@ -28,16 +28,19 @@
 - Phase 4: a bare duration is hours (`10` is 10h, `10:30` is 10h 30m); estimates and extra hours snap to the nearest 15 minutes. The Approvals count and the notification bell are empty slots until those phases. `getOrganizationSettings()` is a read-only query so dates can use the organization time zone.
 - Phase 5: an invitation link is shown once when Resend is not configured or the send fails, because only the hash is stored. Changing a password requires the current password. Tolerance is a whole number. Rates are set on freelancers only. Project memberships are shown and stay read-only until phase 6.
 - Phase 6: the project list has two tabs, Current (Active and On hold) and Archived. "Time this month" is counted plus over-limit time in the organization's current month; cost comes from `report_lines`, per currency, without over-limit time. In the project summary, approved time leaves out rejected and cancelled tasks, remaining time covers only Approved, In progress, and On hold tasks, and counted and over-limit time include every task. Only active freelancers can be added as members, on the project page; the person page lists memberships as links. Task rows link to task detail from phase 7. Project status emails are queued in the outbox and sent once phase 14 adds the dispatcher.
-- Phase 7: there is no separate task list screen; the project page's task table is the list, and its rows open the task detail. The task editor is two pages, `/tasks/new?project=…` and `/tasks/[id]/edit`. A freelancer can enter the estimate while creating the task. An Admin picks the assignee when creating a task and can change it on a draft that was never submitted (changing it clears the estimate); reassigning after submission comes with phase 11, and an assigned task cannot be made unassigned again. Once saved, an estimate can be changed but not cleared. The task detail shows time entries, estimate revisions, and extra-hours requests read-only; the timer and the submit, decide, hold, cancel, done, and accept actions arrive with phases 8–11. History lines are readable sentences with before and after values where the event has them. Decision comments are marked and cannot be edited or deleted; deleting a comment asks for confirmation.
-- Phase 8: a proposal is submitted from the project page (several tasks) or from the task detail (one task). The proposal detail is shared: Admins decide there, and the submitter sees it read-only and withdraws undecided items there or on the task detail. Each item decision is its own action; "Approve All Remaining" and withdrawing ask for confirmation. The proposal's totals and cost range leave out withdrawn items. The inbox already lists extra-hours requests and Done tasks, which open the task detail until phase 11 adds their decisions; the sidebar count covers every inbox entry. Completed proposals are not listed in the inbox; the task's estimate history links to them. There is no "only Admin" warning when submitting, because only freelancers can be members and so only freelancers submit.
+- Phase 7: there is no separate task list screen; the project page's task table is the list, and its rows open the task detail. The task editor is two pages, `/tasks/new?project=…` and `/tasks/[id]/edit`. A freelancer can enter the estimate while creating the task. An Admin picks the assignee when creating a task and can change it on a draft that was never submitted (changing it clears the estimate); reassigning after submission comes with phase 11, and an assigned task cannot be made unassigned again. Once saved, an estimate can be changed but not cleared. The task detail shows the approved estimate, counted time, time entries, and comments. It does not show the limit, the ceiling, the hours bar, links, estimate revisions, or extra-hours requests. The timer and the submit, decide, hold, cancel, done, and accept actions arrive with phases 8–11. History lines are readable sentences with before and after values where the event has them. Decision comments are marked and cannot be edited or deleted; deleting a comment asks for confirmation.
+- Phase 8: a proposal is submitted from the project page (several tasks) or from the task detail (one task). The proposal detail is shared: Admins decide there, and the submitter sees it read-only and withdraws undecided items there or on the task detail. Each item decision is its own action; "Approve All Remaining" and withdrawing ask for confirmation. The proposal's totals and cost range leave out withdrawn items. The inbox already lists extra-hours requests and Done tasks, which open the task detail until phase 11 adds their decisions; the sidebar count covers every inbox entry. Completed proposals are not listed in the inbox and are not linked from the task. There is no "only Admin" warning when submitting, because only freelancers can be members and so only freelancers submit.
 - Phase 9: the timer starts from the task detail and from the freelancer's task rows on the project page; My time and the dashboard add their start buttons in phases 10 and 13. Starting while another timer runs opens the review for the running one first, and the new timer starts once it is saved or discarded. The review shows only times when the run stays within one day, and dates and times with the split per day when it crosses midnight. After more than 10 hours the review shows a warning and needs a "The end time is correct" checkbox before saving; a timer is never stopped for running long. A run that would put a day over 24 hours is refused next to the end time, and the dialog stays open so the run can be shortened or discarded. The author can correct only the description of their entries on the task detail while the month is open; full editing and deleting come with phase 10. An automatic stop removes the bar on every device and shows a toast with the reason. Admins see "Timer running" with the person and the elapsed time on the task detail.
 - Phase 10: My time opens on the organization's current month and lists every month from the first entry through that month. Closed months stay visible and read-only. Add time is the page's primary action, and the start button sits on the list of tasks that can be tracked now, including tasks with no entries this month. A saved timed entry can be moved within one local day, including made longer; only the live stop review is shorten-only. Deleting an entry asks for confirmation.
-- Phase 11: limits and lifecycle actions live on the task detail. The approvals inbox still opens extra-hours requests and Done tasks there. Mark Done while a timer runs on that task opens the stop review first, then the optional comment, whether the run was saved or discarded; closing the review without resolving it leaves the task In progress. Cancel, Hold, and Accept ask for confirmation. Cancel's comment is optional and, when given, is a decision comment. Resume is immediate. Reassign is a dialog for a task that has moved past a never-submitted draft, only while no time exists, and it cannot clear the assignee; the editor still assigns that first draft. Approving extra hours is one click; rejecting requires a reason. The hours-meter link requests extra hours only when the assignee is over the ceiling and has no open request; a pending request says "Extra hours requested" instead. The assignee can also request extra hours from the header before the limit, on an Approved, In progress, or On hold task.
+- Phase 11: limits and lifecycle actions live on the task detail. The approvals inbox still opens extra-hours requests and Done tasks there. Mark Done while a timer runs on that task opens the stop review first, then the optional comment, whether the run was saved or discarded; closing the review without resolving it leaves the task In progress. Cancel, Hold, and Accept ask for confirmation. Cancel's comment is optional and, when given, is a decision comment. Resume is immediate. Reassign is a dialog for a task that has moved past a never-submitted draft, only while no time exists, and it cannot clear the assignee; the editor still assigns that first draft. Approving extra hours is one click; rejecting requires a reason. The task detail does not show the limit, the ceiling, or the hours bar. Request Extra Hours is in the header on an Approved, In progress, or On hold task while no request is open, and an open request is decided above the estimate. The freelancer dashboard still shows the hours bar on active tasks.
 - Phase 12: an Admin report can show everyone or one freelancer, and the CSV export follows that choice. Closing queues the month-closed email; it is sent once phase 14 adds the dispatcher.
-- Phase 13: both dashboards open with a row of stat cards. "Waiting for a decision" shows the five oldest items and links to Approvals. "Estimated versus actual" is per project: approved limits against all counted time (not only this month's) on Approved, In progress, On hold, and Done tasks. "Overruns and risks" puts every risk on one task in one row, and over-limit time replaces the 80% note. Team activity lists time entries and decisions on estimates and extra hours only (not hold, resume, cancel, or acceptance), the 25 newest, with the estimate decisions of one action as one line. Tracking now updates live. The freelancer's timer card shows the running timer with a stop button; starting is the play button on the rows of "My active tasks". "My proposals" lists undecided items and those decided in the last 30 days, without withdrawn ones.
+- Phase 13: both dashboards open with a row of stat cards. The Admin cards count what is waiting for a decision, how many timers are running, and this month's counted time and cost. The waiting list is Approvals, not the dashboard, and the tracking count is from when the page loaded. This month is counted time and cost per freelancer and per project. Team activity lists time entries and decisions on estimates and extra hours only (not hold, resume, cancel, or acceptance), the 25 newest, with the estimate decisions of one action as one line. The freelancer's timer card shows the running timer with a stop button; starting is the play button on the rows of "My active tasks". "My proposals" lists undecided items and those decided in the last 30 days, without withdrawn ones.
 - Phase 14: the bell opens a popover with the ten newest notifications, "Mark All Read", and a link to the Notifications page, which has All and Unread tabs and shows 50 at a time with "Load More". Opening a notification marks it read. The estimate decisions of one action are one notification in the app, as they are one email. A previous assignee's "reassigned" notification opens the dashboard, because they can no longer see the task. Failed emails have no screen; the error stays on the notification row and in the server log. Emails queued before this phase (project status, month closed, and test data) were marked in-app only and never sent. Migration `0011` (the five-minute retry) is in `supabase/migrations/` but is applied, with its Vault secrets, in phase 17, because `pg_cron` cannot reach a local server; until then emails are sent right after each action and failures are retried by the next action's dispatch. Development uses Resend's test sender `onboarding@resend.dev`, which delivers only to the Resend account owner; the verified domain comes in phase 17.
 - Phase 15: the audit log lists every recorded event, newest first, 50 at a time with "Load More". The person filter matches events the person did or that are about them. The event type filter offers a whole group (Tasks, Estimates, Extra hours, Time and timer, Comments and links, Projects, People and rates, Months, Settings) or one event type. The date range is from–to, inclusive, in the organization's time zone, and a start after the end shows an error. Filters live in the URL. Each line is a readable sentence with links to its project, task, person, proposal, or report, and edits (task, time entry, comment, project, status, role, settings) expand to show only the fields that changed, before and after. Migration `0012` adds the `audit_log` view, which takes the project from the task for comment edits and deletions, because those events carry no project; it was applied to the development project ahead of `0011`.
 - Phase 16 (16a): Docker cannot run on the development machine, so the database tests run against a separate Supabase test project instead of a local Supabase, with `npm run test:db` (`scripts/test-db.ts`) instead of `supabase test db`, which needs Docker. The three scenario scripts became pgTAP tests in `supabase/tests/` and were removed; their dates are now relative to the organization's today. A fourth file checks isolation for every table and view and checks the privileges in the catalog. It found that `anon` and `authenticated` had every privilege on the four views, so migration `0013` limits them to SELECT for `authenticated`; it is applied to the test project.
+- Phase 16 (16b): `npm run test:a11y` checks the screens in §9 with axe-core, on a production server that uses only the test project (port 3100, build output in `.next-a11y`, so it does not touch the dev server or `.env.local`). It is separate from `npm test` and from `npm run test:db`. Two stat cards on a phone row scale the figure so a value like €10.83 fits at 360px. Below `sm`, the timer bar is taller, and the stop control, the row start control, and the proposal decision controls are 44px. Stacked table labels are real text. Header actions, including links styled as buttons, stack full width below `sm`. The page content is the only main landmark, and the sidebar is an aside. red-600 is `#E32315` so error text clears 4.5:1 on the page (the design-system `#E62415` is 4.49:1). A select's empty value uses muted text, because that value is real text.
+- Phase 16 (16c): `npm run test:e2e` walks the loop in Tech.md §16 on the test project, in a production server on port 3200 (build output in `.next-e2e`). It calls `tests.reset_data()` first, so it must not run beside `npm run test:db` or `npm run test:a11y`, and it is separate from `npm test`. Resend is left unset, so the invitation is a link on screen. Last month's time is seeded on the second task after acceptance: an accepted task cannot take more time, and a task approved today cannot take a work date in last month, so the seed moves that task's approval date back and inserts the entry with `add_time_entry`.
+- Profile photos (during phase 17): each person uploads their own on Profile. JPG, PNG, or WebP, up to 2 MB, kept in a private Storage bucket (`avatars`). The photo replaces initials wherever that person already has an avatar, including project members. An Admin sees other people's photos; a freelancer sees only their own. Migration `0014`.
 
 The database schema will live in `DB.md`, the architecture in `Tech.md`, and the visual
 rules in `Design.md`.
@@ -70,8 +73,8 @@ works as if they were alone with Olifant: freelancers never see each other.
   inside an approved limit.
 - Olifant can approve a whole list of proposed work in one action, and can still decide
   item by item.
-- Olifant has a live view of time and cost per freelancer and per project, of who is
-  working right now, and of everything waiting for a decision.
+- Olifant sees this month's time and cost per freelancer and per project, how many
+  timers are running, and how much is waiting for a decision.
 - Each freelancer sees what they may work on, how much approved time remains, and what
   they have earned this month.
 - Tracking time is as easy as pressing start and stop.
@@ -337,7 +340,6 @@ time. Freelancers see only their own tasks and their own summary, and no member 
 | Description | Optional                       | Plain text                                      |
 | Assignee    | Required before submission     | A member of the project                         |
 | Estimate    | Required before submission     | Minimum, maximum, optional note                 |
-| Links       | Optional                       | Any number of URLs, each with an optional label |
 
 - **Creating.** A freelancer creates tasks in their projects, assigned to themselves. An
   Admin creates tasks in any project and assigns them to a member or leaves them
@@ -356,10 +358,12 @@ time. Freelancers see only their own tasks and their own summary, and no member 
 - **Deleting.** Only a task that was never submitted can be deleted, by its creator or an
   Admin.
 
-The **task detail** shows status, assignee, estimate, limit, and ceiling; a bar of counted
-time against the limit and ceiling, with over-limit time marked; the time entries; the
-estimate and extra-hours history; links; comments; and the activity history. It also has
-the timer's start and stop button for the assignee.
+The **task detail** shows status, assignee, the approved estimate, and counted time. It does
+not show the limit, the ceiling, or a bar of time against them. It shows the time entries,
+comments, and the activity history. Links, the estimate history, and the extra-hours
+history are not on this screen. An open extra-hours request is decided here, and the
+assignee requests extra hours from the header. It also has the timer's start and stop
+button for the assignee.
 
 ### 6.5 Proposals and approval
 
@@ -387,8 +391,9 @@ the timer's start and stop button for the assignee.
   over-limit time is recounted.
 - Cancelling a task cancels its open request. A task cannot be accepted while a request is
   still open.
-- The assignee sees a warning when a task reaches 100% of its limit, and a prompt to
-  request extra hours whenever over-limit time exists.
+- The assignee sees the hours bar on their active tasks. The task detail does not show it.
+  Request Extra Hours is a button on the task while it is Approved, In progress, or On hold
+  and no request is open.
 
 ### 6.7 Completion and acceptance
 
@@ -437,14 +442,12 @@ the timer's start and stop button for the assignee.
 daily and monthly totals, timed and manual markers, and over-limit markers. It lets them
 start the timer or add a manual entry on any task they can currently track time on.
 
-### 6.9 Comments and links
+### 6.9 Comments
 
 - The assignee and Admins can comment on a task, in plain text, at any status. Authors can
   edit their comments (marked as edited) or delete them.
 - Comments given with a decision (reject, request changes, return) appear in the thread
   automatically.
-- Links are web addresses with an optional label — for example a Figma file, a pull
-  request, or a staging page. The assignee and Admins can add and remove them.
 
 ### 6.10 Month close and reports
 
@@ -472,8 +475,8 @@ freelancers in the app.
 - Per freelancer: one row per task (split by rate if the rate changed during the month)
   with counted time, rate, currency, and amount; over-limit time shown separately as
   unpaid; totals per currency.
-- An open month shows a live preview labelled as not final. A closed month shows the frozen
-  figures.
+- An open month shows the current figures. A closed month shows the frozen figures. The
+  report does not say which; Open and Closed stay on the Months screen.
 - Admins see every freelancer. Each freelancer sees only their own report.
 - **CSV export**, one row per time entry: month, freelancer, project, task, work date,
   start and end time (timed entries), source (timer or manual), description, duration,
@@ -486,14 +489,10 @@ The landing screen after sign-in depends on the role.
 
 **Admin**
 
-- **Waiting for a decision** — proposal items, extra-hours requests, and Done tasks, with
-  their age.
-- **Tracking now** — who has a timer running, on which task, and for how long.
-- **This month** — counted time per freelancer and per project, estimated versus actual on
-  open tasks, and cost per currency.
-- **Overruns and risks** — tasks at or above 80% of their limit, tasks with over-limit
-  time, open extra-hours requests, In progress tasks with no time tracked for seven days,
-  and items waiting for a decision for more than three days.
+- **Waiting for a decision** — the number of proposal items, extra-hours requests, and Done
+  tasks. The list is the Approvals inbox.
+- **Tracking now** — how many timers are running, counted when the page loads.
+- **This month** — counted time per freelancer and per project, and cost per currency.
 - **Team activity** — a feed of time entries and decisions from the last seven days.
 
 **Freelancer**
@@ -545,8 +544,8 @@ Recorded events include: task created, edited, assigned, and every status change
 submitted, withdrawn, and decided; extra hours requested and decided; timer started,
 stopped, discarded, and stopped automatically; time entry created, edited, and deleted (with the values before and
 after); comment deleted; project created, edited, and status changed; member added and
-removed; person invited, activated, deactivated, and role changed; rate added or deleted;
-month closed and reopened; settings changed.
+removed; person invited, activated, deactivated, role changed, and profile photo changed; rate
+added or deleted; month closed and reopened; settings changed.
 
 - The task detail shows that task's history to Admins and to the assignee. The assignee
   sees only what happened from the moment the task was assigned to them.
@@ -558,8 +557,11 @@ month closed and reopened; settings changed.
 from 0 to 100, default 10), and the default currency suggested for new rates. Changing the
 tolerance applies to open months immediately and never to closed months.
 
-**Profile** (everyone): own name and password. Changing the password requires the current
-password. Freelancers also see their own rate history, read-only.
+**Profile** (everyone): own name, password, and photo. Changing the password requires the
+current password. The photo is optional: JPG, PNG, or WebP, up to 2 MB. Without one, the
+avatar is the person's initials. A person sees their own photo. An Admin also sees other
+people's photos where those people are shown. A freelancer never sees another freelancer's
+photo. Freelancers also see their own rate history, read-only.
 
 ## 7. Permissions
 
@@ -575,7 +577,7 @@ password. Freelancers also see their own rate history, read-only.
 | Estimate, submit, withdraw                               | No                                     | Own tasks                         |
 | Decide estimates, extra hours, and acceptance            | Yes                                    | No                                |
 | Track time, request extra hours, mark as Done            | No                                     | Own tasks                         |
-| Comment, add or remove links                             | Yes                                    | Own tasks                         |
+| Comment                                                  | Yes                                    | Own tasks                         |
 | See rates and amounts                                    | Everyone's                             | Own only                          |
 | Monthly report and CSV                                   | All freelancers                        | Own only                          |
 | Close or reopen a month                                  | Yes                                    | No                                |

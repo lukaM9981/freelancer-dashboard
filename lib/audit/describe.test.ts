@@ -129,6 +129,23 @@ describe("describeAuditEvent", () => {
     ).toEqual([{ label: "Comment", from: "Draft", to: "Final" }]);
   });
 
+  it("describes a profile photo change", () => {
+    expect(
+      describeAuditEvent(
+        row({ type: "person.avatar_changed", actorId: "admin-1", subjectId: "admin-1", data: { present: true } }),
+        "admin-1",
+        zone,
+      ).text,
+    ).toBe("You changed their profile photo.");
+    expect(
+      describeAuditEvent(
+        row({ type: "person.avatar_changed", actorId: "admin-1", subjectId: "admin-1", data: { present: false } }),
+        "x",
+        zone,
+      ).text,
+    ).toBe("Marta removed their profile photo.");
+  });
+
   it("names a deleted draft from the event and an automatic event as the app", () => {
     expect(describeAuditEvent(row({ type: "task.deleted", data: { title: "Footer" } }), "x", zone).text).toBe(
       "Marta deleted the draft task \u201cFooter\u201d.",

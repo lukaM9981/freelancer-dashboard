@@ -15,6 +15,8 @@ export type TimeBreakdown = {
   /** One amount per currency, never added across currencies (PRD §8 rule 14). */
   amounts: Money[];
   missingRate: boolean;
+  /** Set for freelancer rows when that person has a photo. */
+  avatarUrl?: string | null;
 };
 
 /** This month's `report_lines` per freelancer, most counted time first. */
@@ -65,46 +67,3 @@ function breakdown(
     );
 }
 
-export type OpenTask = {
-  projectId: string;
-  projectName: string;
-  limitMinutes: number | null;
-  countedMinutes: number;
-  overLimitMinutes: number;
-};
-
-export type EstimateVsActual = {
-  projectId: string;
-  projectName: string;
-  taskCount: number;
-  /** The approved limits: the maximum of each estimate plus approved extra hours. */
-  approvedMinutes: number;
-  countedMinutes: number;
-  overLimitMinutes: number;
-};
-
-/**
- * Approved limits against counted time on open tasks (Approved, In progress, On hold,
- * Done), per project. Time is each task's total, not only this month's.
- */
-export function estimateVsActual(tasks: readonly OpenTask[]): EstimateVsActual[] {
-  const projects = new Map<string, EstimateVsActual>();
-  for (const task of tasks) {
-    const row = projects.get(task.projectId) ?? {
-      projectId: task.projectId,
-      projectName: task.projectName,
-      taskCount: 0,
-      approvedMinutes: 0,
-      countedMinutes: 0,
-      overLimitMinutes: 0,
-    };
-    row.taskCount += 1;
-    row.approvedMinutes += task.limitMinutes ?? 0;
-    row.countedMinutes += task.countedMinutes;
-    row.overLimitMinutes += task.overLimitMinutes;
-    projects.set(task.projectId, row);
-  }
-  return [...projects.values()].sort(
-    (a, b) => a.projectName.localeCompare(b.projectName, "en") || a.projectId.localeCompare(b.projectId),
-  );
-}

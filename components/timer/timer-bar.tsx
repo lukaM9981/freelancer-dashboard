@@ -26,7 +26,7 @@ export function TimerBar() {
       role="region"
       aria-label="Running timer"
       className={cn(
-        "flex h-10 min-w-0 items-center gap-3 rounded-full bg-secondary pr-1 pl-4 text-secondary-foreground shadow-md",
+        "flex h-14 min-w-0 items-center gap-3 rounded-full bg-secondary pr-1 pl-4 text-secondary-foreground shadow-md md:h-10",
         "max-md:fixed max-md:inset-x-4 max-md:bottom-4 max-md:z-40 md:w-full md:max-w-xl",
       )}
     >
@@ -48,7 +48,7 @@ export function TimerBar() {
       <Tooltip>
         <TooltipTrigger
           render={
-            <Button size="icon-sm" aria-label="Stop timer" onClick={() => stop()}>
+            <Button size="icon-sm" className="size-11 sm:size-8" aria-label="Stop timer" onClick={() => stop()}>
               <SquareIcon />
             </Button>
           }
@@ -62,5 +62,5 @@ export function TimerBar() {
 /** Keeps the fixed phone bar from covering the end of the page. */
 export function TimerBarSpacer() {
   const { timer } = useTimer();
-  return timer ? <div className="h-16 md:hidden" aria-hidden="true" /> : null;
+  return timer ? <div className="h-20 md:hidden" aria-hidden="true" /> : null;
 }

@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 
 function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
-    <div data-slot="table-container" className="w-full">
+    <div data-slot="table-container" className="w-full md:overflow-x-auto">
       <table
         data-slot="table"
         className={cn("w-full caption-bottom text-body-xs", className)}
@@ -71,16 +71,23 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
   )
 }
 
-function TableCell({ className, ...props }: React.ComponentProps<"td">) {
+type TableCellProps = React.ComponentProps<"td"> & { "data-label"?: string }
+
+function TableCell({ className, children, "data-label": label = "", ...props }: TableCellProps) {
   return (
     <td
       data-slot="table-cell"
+      data-label={label || undefined}
       className={cn(
-        "px-3 align-middle max-md:flex max-md:items-baseline max-md:justify-between max-md:gap-4 max-md:px-0 max-md:py-1 max-md:before:text-muted-foreground max-md:before:content-[attr(data-label)] md:whitespace-nowrap [&:has([role=checkbox])]:pr-0",
+        "px-3 align-middle max-md:flex max-md:items-baseline max-md:gap-4 max-md:px-0 max-md:py-1 md:whitespace-nowrap [&:has([role=checkbox])]:pr-0",
+        label ? "max-md:justify-between" : "max-md:justify-end",
         className
       )}
       {...props}
-    />
+    >
+      {label ? <span className="shrink-0 text-muted-foreground md:hidden">{label}</span> : null}
+      {children}
+    </td>
   )
 }
 

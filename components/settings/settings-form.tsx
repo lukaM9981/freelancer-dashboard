@@ -71,7 +71,7 @@ export function SettingsForm({
           ]}
         />
       </FieldGroup>
-      <div className="flex justify-end">
+      <div className="flex flex-col gap-3 sm:flex-row sm:justify-end [&_[data-slot=button]]:w-full sm:[&_[data-slot=button]]:w-auto">
         <SubmitButton pending={form.formState.isSubmitting}>Save Settings</SubmitButton>
       </div>
     </form>

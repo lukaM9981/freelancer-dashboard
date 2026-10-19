@@ -21,6 +21,7 @@ import {
   updateProfileSchema,
 } from "@/lib/auth/schemas";
 import { appUrl } from "@/lib/auth/urls";
+import { AVATAR_BUCKET, AVATAR_MAX_BYTES, avatarObjectPath, avatarObjectPaths, sniffAvatar } from "@/lib/avatars";
 import { ERROR_MESSAGES, errorMessage } from "@/lib/db/errors";
 import { type ActionResult, fail, invalidInput, ok } from "@/lib/db/result";
 
@@ -123,5 +124,50 @@ export async function changePassword(input: ChangePasswordInput): Promise<Action
 
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
   if (error) return fail(authErrorMessage(error));
+  return ok();
+}
+
+export async function updateAvatar(formData: FormData): Promise<ActionResult> {
+  const viewer = await requireViewer();
+  const file = formData.get("photo");
+  if (!(file instanceof File) || file.size === 0) return fail("Choose a photo to upload.");
+  if (file.size > AVATAR_MAX_BYTES) return fail("The photo must be 2 MB or smaller.");
+
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const image = sniffAvatar(bytes);
+  if (!image) return fail("Use a JPG, PNG, or WebP image.");
+
+  const path = avatarObjectPath(viewer.id, image.extension);
+  const supabase = createClient(await cookies());
+  const { error: uploadError } = await supabase.storage.from(AVATAR_BUCKET).upload(path, bytes, {
+    contentType: image.mime,
+    upsert: true,
+  });
+  if (uploadError) {
+    console.error("Avatar upload failed", uploadError);
+    return fail("The photo could not be uploaded. Try again.");
+  }
+
+  const { error } = await supabase.rpc("set_my_avatar", { p_path: path });
+  if (error) return fail(errorMessage(error));
+
+  const leftovers = avatarObjectPaths(viewer.id).filter((candidate) => candidate !== path);
+  const { error: removeError } = await supabase.storage.from(AVATAR_BUCKET).remove(leftovers);
+  if (removeError) console.error("Old avatar files could not be removed", removeError);
+
+  revalidatePath("/", "layout");
+  return ok();
+}
+
+export async function removeAvatar(): Promise<ActionResult> {
+  const viewer = await requireViewer();
+  const supabase = createClient(await cookies());
+  const { error } = await supabase.rpc("set_my_avatar", { p_path: null });
+  if (error) return fail(errorMessage(error));
+
+  const { error: removeError } = await supabase.storage.from(AVATAR_BUCKET).remove(avatarObjectPaths(viewer.id));
+  if (removeError) console.error("Avatar files could not be removed", removeError);
+
+  revalidatePath("/", "layout");
   return ok();
 }

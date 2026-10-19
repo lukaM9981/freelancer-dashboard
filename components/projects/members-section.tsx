@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { PersonStatusBadge } from "@/components/people/labels";
+import { PersonAvatar } from "@/components/person-avatar";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -106,14 +107,17 @@ export function MembersSection({ projectId, members, candidates, readOnly }: Mem
               key={member.userId}
               className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
             >
-              <div className="min-w-0">
-                <Link
-                  href={`/people/${member.userId}`}
-                  className="rounded-sm text-body-sm font-medium text-link underline-offset-4 hover:underline focus-ring"
-                >
-                  {member.fullName}
-                </Link>
-                <p className="truncate text-caption text-muted-foreground">{member.email}</p>
+              <div className="flex min-w-0 items-center gap-3">
+                <PersonAvatar name={member.fullName} src={member.avatarUrl} />
+                <div className="min-w-0">
+                  <Link
+                    href={`/people/${member.userId}`}
+                    className="rounded-sm text-body-sm font-medium text-link underline-offset-4 hover:underline focus-ring"
+                  >
+                    {member.fullName}
+                  </Link>
+                  <p className="truncate text-caption text-muted-foreground">{member.email}</p>
+                </div>
               </div>
               <div className="flex flex-wrap items-center gap-3 sm:justify-end">
                 {member.status === "deactivated" ? <PersonStatusBadge status="deactivated" /> : null}

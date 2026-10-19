@@ -6,6 +6,7 @@ export const ERROR_MESSAGES = {
   person_not_found: "This person doesn't exist, or you can't see them.",
   person_exists: "Someone with this email already has an account.",
   person_not_active: "This account is deactivated. Ask Olifant to reactivate it.",
+  invalid_avatar_path: "That photo could not be saved. Try a JPG, PNG, or WebP image.",
   invitation_pending: "This email already has a pending invitation. Resend or revoke it instead.",
   invitation_not_pending: "This invitation was already accepted or revoked.",
   no_valid_invitation: "This invitation link has expired. Ask Olifant for a new one.",

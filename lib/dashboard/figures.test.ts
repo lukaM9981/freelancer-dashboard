@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { estimateVsActual, timeByFreelancer, timeByProject, type DashboardLine } from "@/lib/dashboard/figures";
+import { timeByFreelancer, timeByProject, type DashboardLine } from "@/lib/dashboard/figures";
 
 const line = (overrides: Partial<DashboardLine>): DashboardLine => ({
   user_id: "ana",
@@ -58,21 +58,6 @@ describe("timeByProject", () => {
     expect(rows.map((row) => [row.name, row.countedMinutes])).toEqual([
       ["Mobile app", 90],
       ["Website", 60],
-    ]);
-  });
-});
-
-describe("estimateVsActual", () => {
-  it("adds limits and counted time per project, in name order", () => {
-    expect(
-      estimateVsActual([
-        { projectId: "site", projectName: "Website", limitMinutes: 480, countedMinutes: 500, overLimitMinutes: 0 },
-        { projectId: "site", projectName: "Website", limitMinutes: 120, countedMinutes: 150, overLimitMinutes: 18 },
-        { projectId: "app", projectName: "App", limitMinutes: 60, countedMinutes: 0, overLimitMinutes: 0 },
-      ]),
-    ).toEqual([
-      { projectId: "app", projectName: "App", taskCount: 1, approvedMinutes: 60, countedMinutes: 0, overLimitMinutes: 0 },
-      { projectId: "site", projectName: "Website", taskCount: 2, approvedMinutes: 600, countedMinutes: 650, overLimitMinutes: 18 },
     ]);
   });
 });

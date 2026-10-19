@@ -175,11 +175,19 @@ create table public.profiles (
   status         text        not null default 'active'
                    check (status in ('active', 'deactivated')),
   deactivated_at timestamptz,
+  avatar_path    text,
   created_at     timestamptz not null default now(),
   updated_at     timestamptz not null default now(),
 
   constraint profiles_deactivated_has_time
-    check ((status = 'deactivated') = (deactivated_at is not null))
+    check ((status = 'deactivated') = (deactivated_at is not null)),
+  constraint profiles_avatar_path_check
+    check (
+      avatar_path is null
+      or avatar_path = id::text || '/avatar.jpg'
+      or avatar_path = id::text || '/avatar.png'
+      or avatar_path = id::text || '/avatar.webp'
+    )
 );
 
 create unique index profiles_email_key on public.profiles (lower(email));
@@ -192,7 +200,11 @@ create trigger profiles_set_updated_at
 
 One row per person who accepted an invitation, created by the trigger in section 5.1.
 `on delete restrict` against `auth.users` means a person can never be deleted once they
-exist; they are deactivated instead (PRD rule 18). The role is either `admin` or
+exist; they are deactivated instead (PRD rule 18). `avatar_path` is null until the person
+uploads a photo (PRD §6.14). The file itself is the object at that path in the private
+Storage bucket `avatars` (2 MB; JPEG, PNG, or WebP). Storage policies let a person read
+and replace only their own object, and let an Admin read every object. `set_my_avatar`
+is the only way the column changes. The role is either `admin` or
 `freelancer`; the postponed project manager role will be a value of
 `project_members.role`, not of this column.
 
@@ -1287,6 +1299,7 @@ listed in section 10.
 | `revoke_invitation(invitation_id)` | Admin | Link stops working | `invitation.revoked` |
 | *(trigger)* `app.handle_new_user` | Auth | Profile from the invitation | `person.activated` |
 | `update_my_profile(full_name)` | Anyone | Own name | `person.updated` |
+| `set_my_avatar(path)` | Anyone | Own photo path, or null to clear it. The path must be that person's `avatar.jpg`, `avatar.png`, or `avatar.webp` | `person.avatar_changed` |
 | `set_person_role(user_id, role)` | Admin | Never removes the last active Admin | `person.role_changed` |
 | `deactivate_person(user_id)` | Admin | Stops their timer, blocks access | `person.deactivated` |
 | `reactivate_person(user_id)` | Admin | | `person.reactivated` |
@@ -1617,9 +1630,8 @@ task, and filtering by project finds every event on that project's tasks. RLS is
 ## 9. Realtime and scheduled jobs
 
 - `0010` adds `timers` and `notifications` to the `supabase_realtime` publication. The
-  timer bar subscribes to the person's own timer rows (so it is the same on every device),
-  the Admin "Tracking now" card to all running timers, and the bell to the person's
-  notifications. Neither table is ever deleted from, so every broadcast passes through RLS.
+  timer bar subscribes to the person's own timer rows (so it is the same on every device)
+  and the bell to the person's notifications. Neither table is ever deleted from, so every broadcast passes through RLS.
 - `0011` schedules the email outbox retry every five minutes with `pg_cron` and `pg_net`,
   reading the endpoint and its secret from Supabase Vault. Emails are first attempted
   right after each action (Tech.md §9); the job only picks up what failed or was missed.
@@ -1645,7 +1657,7 @@ each key to user-facing text (Tech.md §12).
 | `work_date_in_future`, `work_date_before_approval`, `month_closed`, `daily_limit_exceeded`, `entry_spans_midnight` | Time entry rules |
 | `month_not_ended`, `earlier_month_open`, `timer_running_in_month`, `open_extra_hours_request`, `missing_rate`, `month_already_closed`, `month_not_latest_closed` | Month close and reopen |
 | `rate_in_closed_month`, `rate_not_deletable` | Rate rules |
-| `person_exists`, `invitation_pending`, `invitation_not_pending`, `no_valid_invitation`, `person_not_active`, `last_admin` | People and invitations |
+| `person_exists`, `invitation_pending`, `invitation_not_pending`, `no_valid_invitation`, `person_not_active`, `last_admin`, `invalid_avatar_path` | People, invitations, and profile photos |
 | `invalid_time_zone` | Settings |
 | `audit_events_are_append_only` | Someone tried to change history |
 
@@ -1677,16 +1689,10 @@ select currency, sum(amount) as amount
  group by currency;
 ```
 
-**Tracking now**
+**Tracking now: how many timers are running**
 
 ```sql
-select t.started_at, p.full_name, k.title, pr.name as project
-  from public.timers t
-  join public.profiles p  on p.id = t.user_id
-  join public.tasks k     on k.id = t.task_id
-  join public.projects pr on pr.id = k.project_id
- where t.stopped_at is null
- order by t.started_at;
+select count(*) from public.timers where stopped_at is null;
 ```
 
 **A freelancer's active tasks with remaining time** (RLS limits it to their own)
@@ -1699,17 +1705,6 @@ select k.id, k.title, pr.name as project, g.limit_minutes, g.ceiling_minutes,
   join public.projects pr on pr.id = k.project_id
  where g.status in ('approved', 'in_progress')
  order by g.percent_used desc nulls last;
-```
-
-**Stalled work: In progress, nothing tracked for seven days**
-
-```sql
-select k.id, k.title, max(e.created_at) as last_tracked
-  from public.tasks k
-  left join public.time_entries e on e.task_id = k.id
- where k.status = 'in_progress'
- group by k.id, k.title
-having coalesce(max(e.created_at), k.status_changed_at) < now() - interval '7 days';
 ```
 
 **Approvals inbox**
@@ -1737,6 +1732,7 @@ supabase/migrations/
   0011_email_cron.sql              pg_cron job for the email outbox (needs Vault secrets)
   0012_audit_log.sql               audit_log view for the Admin audit log
   0013_view_privileges.sql         views: nothing for anon, SELECT only for authenticated
+  0014_profile_avatars.sql         profiles.avatar_path, set_my_avatar, private avatars bucket
 supabase/tests/
   setup.sql                        pgTAP, the tests schema helpers, tests.reset_data()
   10_scenarios.test.sql, 20_more.test.sql,

@@ -34,7 +34,7 @@ export function DeleteTaskButton({ taskId, title }: { taskId: string; title: str
           <DialogHeader>
             <DialogTitle>Delete this task?</DialogTitle>
             <DialogDescription>
-              &ldquo;{title}&rdquo; and its comments and links are removed for good. Only tasks that were
+              &ldquo;{title}&rdquo; and its comments are removed for good. Only tasks that were
               never submitted can be deleted.
             </DialogDescription>
           </DialogHeader>

@@ -82,6 +82,7 @@ export const EVENT_GROUPS = [
       ["invitation.revoked", "Invitation revoked"],
       ["person.activated", "Invitation accepted"],
       ["person.updated", "Name changed"],
+      ["person.avatar_changed", "Profile photo changed"],
       ["person.role_changed", "Role changed"],
       ["person.deactivated", "Person deactivated"],
       ["person.reactivated", "Person reactivated"],

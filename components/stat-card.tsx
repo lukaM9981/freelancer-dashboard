@@ -25,14 +25,17 @@ export function StatCard({
   return (
     <div
       className={cn(
-        "flex flex-col gap-2 rounded-lg bg-card p-6",
+        "@container flex min-w-0 flex-col gap-2 rounded-lg bg-card p-4 sm:p-6",
         variant === "brand" ? "ring-[1.5px] ring-inset ring-primary" : "border border-border",
         className,
       )}
     >
-      <div className="flex flex-col gap-1">
+      <div className="flex min-w-0 flex-col gap-1">
         {figures.map((figure, index) => (
-          <p key={`${figure}-${index}`} className="text-display-stat font-black numeric tracking-tight">
+          <p
+            key={`${figure}-${index}`}
+            className="max-w-full font-black numeric tracking-tight text-[clamp(1.625rem,28cqw,3rem)] leading-none"
+          >
             {figure}
           </p>
         ))}

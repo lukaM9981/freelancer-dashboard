@@ -86,6 +86,14 @@ function sentence(row: AuditRow, viewerId: string): { text: string; detail?: str
       return { text: `${actor} revoked the invitation to ${invitee}.` };
     case "person.activated":
       return { text: `${capitalize(subject)} accepted the invitation and joined as ${withArticle(roleLabel(data.role))}.` };
+    case "person.avatar_changed": {
+      const present = data.present === true;
+      const who = row.actorId != null && row.actorId === row.subjectId ? null : subject;
+      if (present) {
+        return { text: who ? `${actor} changed the profile photo of ${who}.` : `${actor} changed their profile photo.` };
+      }
+      return { text: who ? `${actor} removed the profile photo of ${who}.` : `${actor} removed their profile photo.` };
+    }
     case "person.updated": {
       const name = text(data.full_name);
       const who = row.actorId != null && row.actorId === row.subjectId ? null : subject;

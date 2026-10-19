@@ -62,7 +62,7 @@ export function RoleForm({
           { value: "freelancer", label: "Freelancer", disabled: isLastAdmin },
         ]}
       />
-      <div className="flex justify-end">
+      <div className="flex flex-col gap-3 sm:flex-row sm:justify-end [&_[data-slot=button]]:w-full sm:[&_[data-slot=button]]:w-auto">
         <SubmitButton pending={form.formState.isSubmitting} variant="outline">
           Save Role
         </SubmitButton>
@@ -114,7 +114,7 @@ export function AccessActions({
 
   if (status === "deactivated") {
     return (
-      <div className="flex justify-end">
+      <div className="flex flex-col gap-3 sm:flex-row sm:justify-end [&_[data-slot=button]]:w-full sm:[&_[data-slot=button]]:w-auto">
         <Button type="button" variant="secondary" disabled={pending} onClick={reactivate}>
           Reactivate
         </Button>
@@ -123,7 +123,7 @@ export function AccessActions({
   }
 
   return (
-    <div className="flex flex-col items-end gap-2">
+    <div className="flex flex-col items-stretch gap-2 sm:items-end [&_[data-slot=button]]:w-full sm:[&_[data-slot=button]]:w-auto">
       <Button type="button" variant="destructive" disabled={blocked} onClick={() => setOpen(true)}>
         Deactivate
       </Button>

@@ -10,7 +10,7 @@ Nothing is scaffolded yet. What exists:
 - The documents in `docs/` (PRD, DB, Tech, Design).
 - The design kit: `app/globals.css`, `app/fonts.ts`, `app/fonts/`, `app/icon.png`,
   `app/apple-icon.png`, `public/brand/`, `.cursor/rules/`, `design-system/`.
-- The database: `supabase/migrations/0001`–`0013`, and the pgTAP tests in
+- The database: `supabase/migrations/0001`–`0014`, and the pgTAP tests in
   `supabase/tests/` (section 16).
 
 Step 1 of the build order (section 17) creates the Next.js project around these files.
@@ -69,7 +69,7 @@ The same points as on the Invoice Generator, plus one:
 | UI                 | React 19 Server Components, shadcn/ui on Base UI, Tailwind v4, Olifant design kit |
 | Authentication     | Supabase Auth, email and password, cookie sessions, invitation-only     |
 | Database           | Supabase Postgres 17: RLS for reads, command functions for writes       |
-| Realtime           | Supabase Realtime (Postgres Changes) for the timer, "Tracking now", the bell |
+| Realtime           | Supabase Realtime (Postgres Changes) for the timer and the bell |
 | Email              | Resend + React Email, through a database outbox                         |
 | Scheduled work     | `pg_cron` + `pg_net` in Supabase (email retries)                        |
 | Validation         | Zod schemas shared between forms and server actions                     |
@@ -151,8 +151,9 @@ scripts/
   bootstrap-admin.ts                creates the first Admin's invitation
   seed-demo.ts                      realistic demo data for the client presentation
   test-db.ts                        runs the pgTAP tests against the test project (section 16)
+  a11y.ts                           serves the test project and runs the axe checks (section 16)
 supabase/
-  migrations/                       0001–0013
+  migrations/                       0001–0014
   tests/                            pgTAP tests (*.test.sql) and their helpers (setup.sql)
 docs/                               PRD.md, DB.md, Tech.md, Design.md
 design-system/                      the original export, reference only
@@ -303,8 +304,8 @@ updated with them; unit tests cover them.
   on the task detail.
 - **Approvals inbox** lists every `approval_queue` row oldest first, with its age. Proposals
   open the proposal detail; extra-hours requests and Done tasks open the task detail. The
-  sidebar badge counts the same rows. Completed proposals are reached from the task's
-  estimate history.
+  sidebar badge counts the same rows. Completed proposals are not linked from the task.
+  The freelancer dashboard lists their recent ones.
 - Only freelancers can be project members, so an Admin is never an assignee and never
   submits; the database still refuses self-approval (PRD §4).
 
@@ -350,8 +351,11 @@ markers from `over_limit_minutes`.
 
 All counting happens in the database (`app.recount_task`, DB.md §5.3). The UI reads
 `task_progress` for the limit, ceiling, counted, over-limit, remaining, and percent used,
-and `HoursMeter` (Design.md §5.2) draws it. Prompts to request extra hours appear when
-`over_limit_minutes > 0`; the warning appears from `percent_used >= 100`.
+and `HoursMeter` (Design.md §5.2) draws it on the freelancer's active tasks. The task
+detail shows the approved estimate and counted time, without the limit, the ceiling, or
+the bar. Prompts to request extra hours appear on that dashboard bar when
+`over_limit_minutes > 0`; the warning appears from `percent_used >= 100`. On the task
+itself, Request Extra Hours is a header button.
 
 ### 7.6 Months and reports
 
@@ -364,8 +368,8 @@ and `HoursMeter` (Design.md §5.2) draws it. Prompts to request extra hours appe
   rates) and lists what blocks it; the database re-checks on close. Warnings for Done tasks
   still waiting and for unpaid over-limit time are shown in the confirm dialog.
 - **Reports** read `report_lines` for a month: one table per freelancer with rows per task
-  (and per rate), over-limit time shown as unpaid, totals per currency, and a "Not final"
-  badge while the month is open. An Admin can show everyone or one freelancer; the CSV
+  (and per rate), over-limit time shown as unpaid, and totals per currency. The report does
+  not label the month open or closed. An Admin can show everyone or one freelancer; the CSV
   export uses the same choice (`?user=`).
 
 ### 7.7 Durations, money, and time zones in TypeScript
@@ -388,7 +392,6 @@ and `HoursMeter` (Design.md §5.2) draws it. Prompts to request extra hours appe
 | Channel             | Subscription                                               | Used by             |
 | ------------------- | ---------------------------------------------------------- | ------------------- |
 | `timer:{userId}`    | `postgres_changes` on `timers`, filter `user_id=eq.{userId}` | Timer bar, every page |
-| `tracking-now`      | `postgres_changes` on `timers` (RLS: Admins see all)        | Admin dashboard     |
 | `bell:{userId}`     | `postgres_changes` INSERT on `notifications`, filter `recipient_id=eq.{userId}` | Notification bell |
 
 RLS applies to every broadcast, and neither table is ever deleted from, so nothing leaks
@@ -443,11 +446,11 @@ straight to the Admin who decided.
 ## 10. Dashboards
 
 Each dashboard section is one query against the tables and views in DB.md §8, run in
-parallel. Admin: `approval_queue` (waiting), running `timers` (tracking now), entries and
-`report_lines` for the month (time and cost), open `tasks` and a stalled-work query
-(estimated versus actual, and risks), recent `audit_events` (activity). Freelancer: their running timer, their Draft and
-Changes requested tasks, `task_progress` for active tasks, `report_lines` for the month, and
-their latest revisions. Example SQL is in DB.md §11.
+parallel. Admin: `approval_queue` (the waiting count), running `timers` (the tracking count),
+`report_lines` for the month (time and cost), and recent `audit_events` (activity).
+Freelancer: their running timer, their Draft and Changes requested tasks, `task_progress`
+for active tasks, `report_lines` for the month, and their latest revisions. Example SQL is
+in DB.md §11.
 
 ## 11. CSV export
 
@@ -545,11 +548,29 @@ In Supabase Vault (for `pg_cron`): `app_url` and `cron_secret` with the same val
   relative to the organization's today, so the tests run on any day.
 - **Unit** (Vitest): `lib/duration.ts`, `lib/money.ts`, `lib/reports/csv.ts` (cent
   allocation), `lib/tasks/permissions.ts`, `lib/db/errors.ts` (every key has a message).
-- **End-to-end** (Playwright, against the test project): bootstrap Admin → invite a
-  freelancer → accept → freelancer creates and estimates two tasks → submits → Admin
-  approves all → freelancer runs the timer and adds manual time past the ceiling →
-  requests extra hours → Admin approves → Done → Accept → Admin closes last month (seeded)
-  → CSV downloads. Run before every deploy.
+- **Accessibility** (Playwright and axe-core, against the test project): `npm run test:a11y`
+  (`scripts/a11y.ts`). It reads only `.env.test.local`, refuses the run if that project is
+  the development project or has anyone outside `@example.com`, and does not call
+  `tests.reset_data()` (so it can run beside `npm run test:db` without wiping it, and a
+  later `test:db` is free to wipe these fixtures). It builds with `NEXT_DIST_DIR=.next-a11y`
+  and serves that build on port 3100, so it never reuses the dev server's `.next` cache or
+  its inlined keys. The checks cover the screens in PRD §9 for an Admin and a freelancer,
+  at 360px, 768px, and 1280px, plus keyboard focus on the sign-in form. This is not the smoke test
+  below, and it does not run as part of `npm test`.
+- **End-to-end** (Playwright, against the test project): `npm run test:e2e`
+  (`scripts/e2e.ts`). It reads only `.env.test.local`, refuses the development project
+  and anyone outside `@example.com`, applies `supabase/tests/setup.sql`, and calls
+  `tests.reset_data()`, so it must not run beside `npm run test:db` or `npm run test:a11y`.
+  It builds with `NEXT_DIST_DIR=.next-e2e` and serves that build on port 3200. `RESEND_API_KEY`
+  and `EMAIL_FROM` are left empty, so the invitation is shown as a link. The walk is:
+  bootstrap Admin → invite a freelancer → accept → freelancer creates and estimates two
+  tasks → submits → Admin approves all → freelancer runs the timer and adds manual time
+  past the ceiling → requests extra hours → Admin approves → Done → Accept → Admin closes
+  last month (seeded) → CSV downloads. The seeded entry is on the second task, which is
+  still approved: an accepted task cannot take time, and a task approved today cannot take
+  a work date in last month, so the seed moves that task's `first_approved_on` back and
+  inserts the entry with `add_time_entry`. It does not run as part of `npm test`. Run it
+  before every deploy.
 
 ## 17. Deployment and handover
 
