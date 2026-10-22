@@ -9,14 +9,16 @@ import {
 } from "@/lib/time/screenshot-notice";
 
 const OFFERED_KEY = "olifant:screenshot-notices-offered";
+const SHUTTER_URL = "/sound/shutter.mp3";
 
 let audio: AudioContext | null = null;
-let noise: AudioBuffer | null = null;
+let shutter: AudioBuffer | null = null;
+let loading: Promise<void> | null = null;
 
 /**
- * Creates or resumes the shared audio context. Call it synchronously from the click that
- * starts the timer, before any await: Safari and Firefox let a context play from a
- * background tab only if it was started by a user gesture.
+ * Creates or resumes the shared audio context and loads the shutter sound. Call it
+ * synchronously from the click that starts the timer, before any await: Safari and
+ * Firefox let a context play from a background tab only if it was started by a user gesture.
  */
 export function unlockShutterSound(): void {
   if (typeof window === "undefined") return;
@@ -30,42 +32,33 @@ export function unlockShutterSound(): void {
     if (audio.state !== "running") void audio.resume().catch(() => undefined);
   } catch {
     audio = null;
+    return;
+  }
+  if (!shutter && !loading) loading = loadShutter(audio);
+}
+
+async function loadShutter(context: AudioContext): Promise<void> {
+  try {
+    const response = await fetch(SHUTTER_URL);
+    if (!response.ok) throw new Error("No shutter sound.");
+    shutter = await context.decodeAudioData(await response.arrayBuffer());
+  } catch {
+    loading = null;
   }
 }
 
-/** A short two-click camera shutter made from filtered noise. Silent if the context never started. */
+/** The camera shutter. Silent if the context never started or the sound has not loaded. */
 export function playShutter(): void {
   const context = audio;
-  if (!context || context.state !== "running") return;
+  if (!context || context.state !== "running" || !shutter) return;
   try {
-    if (!noise || noise.sampleRate !== context.sampleRate) {
-      const length = Math.ceil(context.sampleRate * 0.08);
-      noise = context.createBuffer(1, length, context.sampleRate);
-      const samples = noise.getChannelData(0);
-      for (let i = 0; i < length; i += 1) samples[i] = Math.random() * 2 - 1;
-    }
-    const start = context.currentTime + 0.01;
-    click(context, noise, start, 3200, 0.05);
-    click(context, noise, start + 0.07, 2200, 0.07);
+    const source = context.createBufferSource();
+    source.buffer = shutter;
+    source.connect(context.destination);
+    source.start();
   } catch {
     // A sound that fails to play is not worth interrupting the timer for.
   }
-}
-
-function click(context: AudioContext, buffer: AudioBuffer, at: number, frequency: number, length: number) {
-  const source = context.createBufferSource();
-  source.buffer = buffer;
-  const filter = context.createBiquadFilter();
-  filter.type = "bandpass";
-  filter.frequency.value = frequency;
-  filter.Q.value = 0.9;
-  const gain = context.createGain();
-  gain.gain.setValueAtTime(0.0001, at);
-  gain.gain.exponentialRampToValueAtTime(0.35, at + 0.003);
-  gain.gain.exponentialRampToValueAtTime(0.0001, at + length);
-  source.connect(filter).connect(gain).connect(context.destination);
-  source.start(at);
-  source.stop(at + length + 0.01);
 }
 
 function notificationPermission(): NotificationPermission | "unsupported" {
