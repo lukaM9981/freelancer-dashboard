@@ -318,6 +318,17 @@ rounded-sm shadow-md`.
 `text-body-xs font-bold`, message `text-body-xs text-muted-foreground`. Pass these through
 the Toaster's `toastOptions.classNames`.
 
+**Screenshot preview** (custom, `components/timer/screenshot-preview.tsx`): shown for about
+four seconds after a timer screenshot is saved, while the Olifant tab is visible and
+focused. `fixed bottom-6 right-6 z-50` (`bottom-24` below `md`, above the phone timer bar),
+`w-64 bg-card rounded-md border border-border shadow-md p-2`, `pointer-events-none`, no
+buttons. The image fills the width at its own aspect ratio (`rounded-sm bg-muted`), alt
+"Screenshot just saved"; below it "Screenshot saved" in `text-body-xs font-bold` and the
+capture time (`14:05`, organization time zone) in `font-mono numeric text-caption
+text-muted-foreground`. It fades in and out over 200ms with `ease-brand`, is a
+`role="status"` region, and a newer shot replaces it. Toasts stay `top-center`, so the
+bottom-right corner is free.
+
 ### 4.4 Data display
 
 **Badge**: pill, `inline-flex items-center gap-1 px-3 py-1 text-caption font-medium`, icon
@@ -416,6 +427,7 @@ Parsing and formatting live in `lib/duration.ts`, `lib/money.ts`, and `lib/dates
 | Money in two currencies | Separate values, never a sum               | `€1,240.00 · $300.00`      |
 | Date                   | Day, short month, year                      | `6 Oct 2026`               |
 | Date and time          | 24-hour clock                               | `6 Oct 2026, 14:05`        |
+| Time of day            | 24-hour clock                               | `14:05`                    |
 | Relative (feeds only)  | Short                                       | `3h ago`, `yesterday`      |
 | Percent                | Whole number                                | `80%`                      |
 

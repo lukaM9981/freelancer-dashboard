@@ -114,6 +114,11 @@ export function formatDateTime(value: DateInput, timeZone: string): string {
   return formatInZone(value, timeZone, "d MMM yyyy, HH:mm");
 }
 
+/** "14:05" */
+export function formatTimeOfDay(value: DateInput, timeZone: string): string {
+  return formatInZone(value, timeZone, "HH:mm");
+}
+
 /**
  * Short feed labels: "3h ago", "12m ago", "yesterday". Anything older is the date.
  * `now` is injectable so tests don't depend on the clock.

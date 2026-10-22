@@ -72,13 +72,13 @@ export async function captureScreenshot(stream: MediaStream): Promise<Blob | nul
   return blob;
 }
 
-/** Stores one frame for the running timer. A failed upload removes the empty row. */
-export async function uploadScreenshot(timerId: string, stream: MediaStream): Promise<boolean> {
+/** Stores one frame for the running timer and returns it. A failed upload removes the empty row. */
+export async function uploadScreenshot(timerId: string, stream: MediaStream): Promise<Blob | null> {
   const blob = await captureScreenshot(stream);
-  if (!blob) return false;
+  if (!blob) return null;
 
   const created = await createTimerScreenshot({ timerId });
-  if (!created.ok) return false;
+  if (!created.ok) return null;
 
   const shotId = created.data.path.split("/").pop()?.replace(/\.jpg$/, "");
   const supabase = createClient();
@@ -88,9 +88,9 @@ export async function uploadScreenshot(timerId: string, stream: MediaStream): Pr
   });
   if (error) {
     if (shotId) await discardUnstoredScreenshot({ id: shotId });
-    return false;
+    return null;
   }
-  return true;
+  return blob;
 }
 
 /** A desktop has a fine pointer and can hover. Phones and tablets do not. */

@@ -6,6 +6,14 @@ import { toast } from "sonner";
 import { createClient } from "@/utils/supabase/client";
 import { TimerReviewDialog } from "@/components/timer/timer-review-dialog";
 import { isComputer, requestEntireScreen, stopStream, uploadScreenshot } from "@/components/timer/screen-share";
+import {
+  currentScreenshotChannel,
+  notifyScreenshot,
+  offerScreenshotNotices,
+  playShutter,
+  unlockShutterSound,
+} from "@/components/timer/screenshot-feedback";
+import { ScreenshotPreview, type SavedScreenshot } from "@/components/timer/screenshot-preview";
 import { useServerClock } from "@/components/timer/use-server-clock";
 import { pauseTimer, resumeTimer, startTimer, touchTimerShare } from "@/lib/time/actions";
 import { SCREENSHOT_INTERVAL_MS, SHARE_HEARTBEAT_MS, SHARE_STALE_MS, activeMilliseconds } from "@/lib/time/active-time";
@@ -72,6 +80,7 @@ export function TimerProvider({
   const [startingTaskId, setStartingTaskId] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const [shareSeenAt, setShareSeenAt] = useState<string | null>(serverTimer?.shareSeenAt ?? null);
+  const [preview, setPreview] = useState<SavedScreenshot | null>(null);
   const timer = serverTimer && serverTimer.id !== stoppedId ? serverTimer : null;
   const ticking = timer?.segmentStartedAt != null;
   const { now, read: readClock } = useServerClock(serverNow, ticking);
@@ -82,6 +91,8 @@ export function TimerProvider({
   const loopsRef = useRef<number[]>([]);
   const afterStopRef = useRef<(() => void) | null>(null);
   const shareSeenRef = useRef(shareSeenAt);
+  const shotCountRef = useRef(0);
+  const previewUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     timerRef.current = timer;
@@ -114,8 +125,21 @@ export function TimerProvider({
       sharingRef.current = true;
       const shoot = () => {
         if (!sharingRef.current || streamRef.current !== stream) return;
-        void uploadScreenshot(timerId, stream).then((saved) => {
-          if (saved) router.refresh();
+        const capturedAt = readClock();
+        void uploadScreenshot(timerId, stream).then((blob) => {
+          if (!blob) return;
+          playShutter();
+          const channel = currentScreenshotChannel();
+          if (channel === "card") {
+            if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+            const url = URL.createObjectURL(blob);
+            previewUrlRef.current = url;
+            shotCountRef.current += 1;
+            setPreview({ id: shotCountRef.current, url, capturedAt });
+          } else if (channel === "notification") {
+            void notifyScreenshot(blob);
+          }
+          router.refresh();
         });
       };
       void shoot();
@@ -205,6 +229,7 @@ export function TimerProvider({
         toast.error("Track time from a computer. A phone can't share the whole screen.");
         return;
       }
+      unlockShutterSound();
       setStartingTaskId(task.id);
       const stream = await requestEntireScreen();
       if (stream === "cancelled" || stream === "unsupported") {
@@ -246,6 +271,7 @@ export function TimerProvider({
       }
       beginSampling(stream, timerId);
       setAnnouncement(mode === "start" ? `Timer started on ${task.title}.` : `Timer continued on ${task.title}.`);
+      offerScreenshotNotices();
       router.refresh();
     },
     [beginSampling, router],
@@ -296,6 +322,20 @@ export function TimerProvider({
     [readClock, releaseShare],
   );
 
+  const closePreview = useCallback(() => {
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    previewUrlRef.current = null;
+    setPreview(null);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = null;
+    },
+    [],
+  );
+
   const activeMs = timer
     ? activeMilliseconds({
         accumulatedMs: timer.accumulatedMs,
@@ -336,6 +376,9 @@ export function TimerProvider({
             after?.();
           }}
         />
+      ) : null}
+      {preview ? (
+        <ScreenshotPreview key={preview.id} shot={preview} timeZone={timeZone} onClosed={closePreview} />
       ) : null}
       <div aria-live="polite" className="sr-only">
         {announcement}

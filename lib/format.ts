@@ -11,6 +11,7 @@ export {
   formatDateTime,
   formatMonth,
   formatRelative,
+  formatTimeOfDay,
 } from "@/lib/dates";
 export { formatDuration, parseDuration, snapMinutes } from "@/lib/duration";
 export { formatAmounts, formatMoney, toCents, type Currency, type Money } from "@/lib/money";

@@ -41,7 +41,7 @@
 - Phase 16 (16b): `npm run test:a11y` checks the screens in §9 with axe-core, on a production server that uses only the test project (port 3100, build output in `.next-a11y`, so it does not touch the dev server or `.env.local`). It is separate from `npm test` and from `npm run test:db`. Two stat cards on a phone row scale the figure so a value like €10.83 fits at 360px. Below `sm`, the timer bar is taller, and the stop control, the row start control, and the proposal decision controls are 44px. Stacked table labels are real text. Header actions, including links styled as buttons, stack full width below `sm`. The page content is the only main landmark, and the sidebar is an aside. red-600 is `#E32315` so error text clears 4.5:1 on the page (the design-system `#E62415` is 4.49:1). A select's empty value uses muted text, because that value is real text.
 - Phase 16 (16c): `npm run test:e2e` walks the loop in Tech.md §16 on the test project, in a production server on port 3200 (build output in `.next-e2e`). It calls `tests.reset_data()` first, so it must not run beside `npm run test:db` or `npm run test:a11y`, and it is separate from `npm test`. Resend is left unset, so the invitation is a link on screen. Last month's time is seeded on the second task after acceptance: an accepted task cannot take more time, and a task approved today cannot take a work date in last month, so the seed moves that task's approval date back and inserts the entry with `add_time_entry`.
 - Profile photos (during phase 17): each person uploads their own on Profile. JPG, PNG, or WebP, up to 2 MB, kept in a private Storage bucket (`avatars`). The photo replaces initials wherever that person already has an avatar, including project members. An Admin sees other people's photos; a freelancer sees only their own. Migration `0014`.
-- Screen captures (during phase 17): the timer starts only when the freelancer shares the entire screen from a computer. Sharing stopping pauses the clock; sharing again continues it. A screenshot is stored at the start and every 10 minutes. Deleting one hides it from the freelancer, leaves the file for Admins, and notifies them. Migration `0015`. Phase 17's deploy, Resend domain, and migration `0011` are unchanged.
+- Screen captures (during phase 17): the timer starts only when the freelancer shares the entire screen from a computer. Sharing stopping pauses the clock; sharing again continues it. A screenshot is stored at the start and every 10 minutes. Deleting one hides it from the freelancer, leaves the file for Admins, and notifies them. Each saved screenshot plays a shutter sound and shows a preview: a card in the app when the Olifant tab is visible and focused, otherwise a browser notification that closes itself after about four seconds (Chrome and Edge show the image, Firefox a small icon, Safari text only). Notification permission is asked from a separate toast, once per browser, after the timer starts, because the start click is spent on sharing the screen; without permission only the sound plays outside the app. These are not §6.12 notifications and are not stored. Migration `0015`. Phase 17's deploy, Resend domain, and migration `0011` are unchanged.
 
 The database schema will live in `DB.md`, the architecture in `Tech.md`, and the visual
 rules in `Design.md`.
@@ -239,6 +239,9 @@ There are two ways to record time:
   while the screen stays shared. When sharing stops, the clock pauses at that moment and
   the gap is not counted. Sharing the entire screen again continues the same timer.
   While it runs, the app stores a screenshot at the start and then every 10 minutes.
+  Each time one is saved, the freelancer hears a short shutter sound and sees the shot:
+  as a small card in the app when Olifant is the window in front, otherwise as a browser
+  notification if they allowed notifications.
   Those images stay even if the time is discarded. The freelancer can delete one of
   their screenshots; the file stays for Admins, and every Admin is notified. Stopping
   opens a short review — task, the active time, description — and saves the time as an
@@ -433,7 +436,11 @@ button for the assignee.
   elapsed time, and a stop button. When sharing stops, the bar shows Paused and a
   continue control, which asks for the entire screen again.
 - The first screenshot is taken as the timer starts, then one every 10 minutes for as
-  long as the screen stays shared. Screenshots are listed on the task for the assignee
+  long as the screen stays shared. After each one is saved, the freelancer hears a short
+  shutter sound and sees a preview for about four seconds: a card with the image and the
+  capture time in the bottom-right corner when the Olifant tab is visible and focused,
+  otherwise the browser's own notification, if they allowed notifications. Nothing is
+  shown when a screenshot fails to save. Screenshots are listed on the task for the assignee
   and for Admins. A freelancer sees only their own, and not ones they have deleted. An
   Admin sees every screenshot on the task, including ones the freelancer deleted, marked
   as deleted.

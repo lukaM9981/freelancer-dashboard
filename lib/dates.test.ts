@@ -8,6 +8,7 @@ import {
   formatDateTime,
   formatMonth,
   formatRelative,
+  formatTimeOfDay,
   isoDateInZone,
   monthStartInZone,
   monthStartOf,
@@ -35,6 +36,8 @@ describe("formatDate", () => {
   it("renders the organization's time zone, not UTC", () => {
     expect(formatDateTime("2026-10-06T12:05:00.000Z", zone)).toBe("6 Oct 2026, 14:05");
     expect(formatDate("2026-10-06T22:30:00.000Z", zone)).toBe("7 Oct 2026");
+    expect(formatTimeOfDay("2026-10-06T12:05:00.000Z", zone)).toBe("14:05");
+    expect(formatTimeOfDay("2026-10-06T22:30:00.000Z", "America/New_York")).toBe("18:30");
   });
 });
 
