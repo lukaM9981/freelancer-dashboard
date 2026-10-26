@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { StatCard } from "@/components/stat-card";
 import { StatusBadge } from "@/components/status-badge";
 import { type CommentView, CommentsSection } from "@/components/tasks/comments-section";
+import { TaskHistory } from "@/components/tasks/task-history";
 import { SubmitTaskButton, WithdrawButton } from "@/components/proposals/proposal-actions";
 import { DeleteTaskButton } from "@/components/tasks/delete-task-button";
 import { ExtraHoursCallout, TaskActions, TaskHeaderButtons } from "@/components/tasks/task-actions";
@@ -226,6 +227,7 @@ export default async function TaskPage({ params }: TaskPageProps) {
         <TaskScreenshots
           shots={screenshots}
           timeZone={settings.timeZone}
+          today={task.today}
           canDelete={!isAdmin && task.assigneeId === viewer.id}
         />
 
@@ -236,7 +238,7 @@ export default async function TaskPage({ params }: TaskPageProps) {
 
         <section className="space-y-4">
           <h2 className="text-heading-xs">History</h2>
-          <ActivityHistory task={task} />
+          <TaskHistory entries={task.history} timeZone={task.timeZone} />
         </section>
       </div>
     </div>
@@ -336,27 +338,6 @@ function TimeEntries({ task }: { task: TaskDetail }) {
         ))}
       </TableBody>
     </Table>
-  );
-}
-
-function ActivityHistory({ task }: { task: TaskDetail }) {
-  if (task.history.length === 0) {
-    return <p className="text-body-sm text-muted-foreground">Nothing recorded yet.</p>;
-  }
-  return (
-    <ol className="space-y-3">
-      {task.history.map((entry) => (
-        <li key={entry.id} className="space-y-0.5 border-b border-border pb-3 last:border-0">
-          <p className="text-body-xs">{entry.text}</p>
-          {entry.detail ? (
-            <p className="whitespace-pre-line break-words text-caption text-muted-foreground">{entry.detail}</p>
-          ) : null}
-          <p className="font-mono text-caption text-muted-foreground">
-            {formatDateTime(entry.occurredAt, task.timeZone)}
-          </p>
-        </li>
-      ))}
-    </ol>
   );
 }
 

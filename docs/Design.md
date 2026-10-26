@@ -264,7 +264,13 @@ a spinner in place of the label; icon buttons always have an `aria-label` and a 
 px-4 text-body-sm placeholder:text-neutral-400 focus-field
 aria-invalid:border-destructive disabled:bg-muted disabled:opacity-60`. Textarea uses
 `py-3` and `min-h-24` instead of a fixed height. A select's empty value is real text, so
-it uses `text-muted-foreground` rather than the placeholder grey (§3.1).
+it uses `text-muted-foreground` rather than the placeholder grey (§3.1). A password input
+can show its value: a trailing `ghost` `icon-sm` eye button, `aria-label` "Show …" /
+"Hide …" from the field label, plus a tooltip. `autoComplete` stays so the browser can
+still save the password. A password input
+can show its value: a trailing `ghost` `icon-sm` eye button, `aria-label` "Show …" /
+"Hide …" from the field label, plus a tooltip. `autoComplete` stays so the browser can
+still save the password.
 
 **Label**: above the field, `text-body-xs font-medium`. Optionally `text-pine-700` while the
 field has focus (`group-focus-within:`), as in the design system.
@@ -452,9 +458,13 @@ the yellow primary control. On this bar its hover lightens to `bg-yellow-200` wi
 icon, because the usual yellow-to-ink hover would match the bar and disappear.
 
 **Screenshots** on the task detail are a grid of bordered cards (`rounded-lg border
-border-border`), the image at 16:9, and the capture time in `text-caption`. The
-freelancer's Delete asks for confirmation. An Admin sees a deleted shot with the caption
-"Deleted by the freelancer" and no delete button.
+border-border`), the image at 16:9, and the capture time in `text-caption`. Above the
+grid, a period select (Day, Week, Month) and previous/next controls choose one day, one
+Monday–Sunday week, or one calendar month. The range is named in the organization time
+zone ("This week, 26 Oct – 1 Nov 2026"). Twelve cards fill a page; Previous and Next
+move between pages. A period with none says so. The freelancer's Delete asks for
+confirmation. An Admin sees a deleted shot with the caption "Deleted by the freelancer"
+and no delete button.
 
 **After ten hours** a `text-primary` caption "Running over 10h" with `triangle-alert`
 appears in the bar.

@@ -53,6 +53,7 @@ export function AcceptInvitationForm({ token, email, fullName }: AcceptInvitatio
           name="password"
           label="Password"
           type="password"
+          reveal
           autoComplete="new-password"
           description={`At least ${PASSWORD_MIN_LENGTH} characters.`}
           autoFocus
@@ -62,6 +63,7 @@ export function AcceptInvitationForm({ token, email, fullName }: AcceptInvitatio
           name="confirmPassword"
           label="Confirm password"
           type="password"
+          reveal
           autoComplete="new-password"
         />
       </FieldGroup>

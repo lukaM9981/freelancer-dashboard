@@ -107,6 +107,17 @@ test.describe("keyboard", () => {
     await expectVisibleFocus(page);
 
     await page.keyboard.press("Tab");
+    await expect(page.getByRole("button", { name: "Show password" })).toBeFocused();
+    await expectVisibleFocus(page);
+
+    await page.keyboard.press("Tab");
+    await expect(page.getByRole("link", { name: "Forgot your password?" })).toBeFocused();
+    await expectVisibleFocus(page);
+
+    await page.keyboard.press("Tab");
+    await expect(page.getByRole("checkbox", { name: "Remember me" })).toBeFocused();
+    await expectVisibleFocus(page);
+
     await page.keyboard.press("Tab");
     await expect(page.getByRole("button", { name: "Sign In" })).toBeFocused();
     await expectVisibleFocus(page);

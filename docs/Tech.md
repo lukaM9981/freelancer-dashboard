@@ -181,6 +181,19 @@ proxy.ts
 Roles are read from `profiles.role`, never from JWT claims or `user_metadata`, which the
 user can edit.
 
+**Remember me** (PRD §6.1). Sign-in stores the session choice in `ow-remember`.
+`@supabase/ssr` gives every auth cookie a 400-day `maxAge`. When the cookie's value is
+`0`, the server client, the proxy, and the browser client drop `maxAge` and `expires`
+on each write, except a deletion (`maxAge: 0`), so the session ends when the browser
+closes. Any other value, including no cookie, keeps the persistent cookies. Sign-out
+clears `ow-remember`. The cookie is readable by the page so the browser client can
+follow it; it holds no secret.
+
+When the box is checked, a successful sign-in also writes the email and password to
+`localStorage` under `ow-remembered-login`. The sign-in form fills that password in
+whenever the email matches, including after sign-out. Signing in with the box off
+deletes the entry. Sign-out does not. A failed sign-in puts the previous entry back.
+
 ### 5.2 Invitations
 
 There is no sign-up screen, and **"Allow new users to sign up" is off** in the Supabase
@@ -351,8 +364,9 @@ second. Save calls
 `DurationInput` turns `1:30`, `1h 30m`, `90m`, or `1.5` into whole minutes
 (`lib/duration.ts`). The date picker allows dates from the task's `first_approved_on` to
 the organization's today; both come from the server. My time loads one month of the
-viewer's entries, grouped by work date, with timed and manual markers and over-limit
-markers from `over_limit_minutes`.
+viewer's entries only to total them. The screen shows that total, over-limit time when
+there is any, and the tasks that can be tracked now. The entries themselves are listed
+on the task.
 
 ### 7.5 Limits and the hours meter
 

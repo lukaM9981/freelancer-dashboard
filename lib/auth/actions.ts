@@ -6,6 +6,11 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { authErrorMessage } from "@/lib/auth/errors";
 import { RECOVERY_GRANT_COOKIE } from "@/lib/auth/recovery";
+import {
+  REMEMBER_COOKIE,
+  clearRememberPreferenceCookie,
+  rememberPreferenceCookie,
+} from "@/lib/auth/remember";
 import { HOME_PATH, LOGIN_PATH, safeRedirectPath } from "@/lib/auth/routes";
 import { requireViewer } from "@/lib/auth/queries";
 import {
@@ -29,8 +34,10 @@ export async function signIn(input: LoginInput, next?: string | null): Promise<A
   const parsed = loginSchema.safeParse(input);
   if (!parsed.success) return invalidInput(parsed.error);
 
-  const supabase = createClient(await cookies());
-  const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
+  const { email, password, remember } = parsed.data;
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore, { remember });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) return fail(authErrorMessage(error));
 
   // A deactivated person whose auth user isn't banned yet still gets a session; RLS
@@ -45,12 +52,15 @@ export async function signIn(input: LoginInput, next?: string | null): Promise<A
     return fail(ERROR_MESSAGES.person_not_active);
   }
 
+  cookieStore.set(REMEMBER_COOKIE, remember ? "" : "0", rememberPreferenceCookie(remember));
   redirect(safeRedirectPath(next));
 }
 
 export async function signOut() {
-  const supabase = createClient(await cookies());
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
   await supabase.auth.signOut();
+  cookieStore.set(REMEMBER_COOKIE, "", clearRememberPreferenceCookie());
   redirect(LOGIN_PATH);
 }
 

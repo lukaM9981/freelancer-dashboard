@@ -161,6 +161,7 @@ function PasswordForm() {
           name="currentPassword"
           label="Current password"
           type="password"
+          reveal
           autoComplete="current-password"
         />
         <TextField
@@ -168,6 +169,7 @@ function PasswordForm() {
           name="password"
           label="New password"
           type="password"
+          reveal
           autoComplete="new-password"
           description="8 to 72 characters."
         />
@@ -176,6 +178,7 @@ function PasswordForm() {
           name="confirmPassword"
           label="Confirm new password"
           type="password"
+          reveal
           autoComplete="new-password"
         />
       </FieldGroup>

@@ -20,6 +20,7 @@ const passwordsMatch = {
 export const loginSchema = z.object({
   email,
   password: z.string().min(1, "Enter your password."),
+  remember: z.boolean(),
 });
 export type LoginInput = z.infer<typeof loginSchema>;
 

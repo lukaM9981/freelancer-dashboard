@@ -38,6 +38,7 @@ export function ResetPasswordForm({ email }: { email: string }) {
           name="password"
           label="New password"
           type="password"
+          reveal
           autoComplete="new-password"
           description={`At least ${PASSWORD_MIN_LENGTH} characters.`}
           autoFocus
@@ -47,6 +48,7 @@ export function ResetPasswordForm({ email }: { email: string }) {
           name="confirmPassword"
           label="Confirm new password"
           type="password"
+          reveal
           autoComplete="new-password"
         />
       </FieldGroup>
